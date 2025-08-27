@@ -1,28 +1,28 @@
-'use client';
+"use client";
 
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { useRouter } from 'next/navigation';
-import { FaUser, FaPencilAlt, FaFileAlt, FaMedkit } from 'react-icons/fa';
-import { PiUsersThreeLight } from 'react-icons/pi';
-import { BiLogOut } from 'react-icons/bi';
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { useRouter } from "next/navigation";
+import { FaUser, FaPencilAlt, FaFileAlt, FaMedkit } from "react-icons/fa";
+import { PiUsersThreeLight } from "react-icons/pi";
+import { BiLogOut } from "react-icons/bi";
 
 const col1 = [
-  ['Moradores', <FaUser className="text-[1.5em] text-[#003d99]" />],
-  ['Usuários', <FaPencilAlt className="text-[1.5em] text-[#003d99]" />],
+  ["Moradores", <FaUser className="text-[1.5em] text-[#003d99]" />],
+  ["Usuários", <FaPencilAlt className="text-[1.5em] text-[#003d99]" />],
   [
-    'Funcionários',
+    "Funcionários",
     <PiUsersThreeLight className="text-[1.5em] text-[#003d99]" />,
   ],
 ];
 
 const col2 = [
-  ['Medicamentos', <FaMedkit className="text-[1.5em] text-[#003d99]" />],
+  ["Medicamentos", <FaMedkit className="text-[1.5em] text-[#003d99]" />],
   [
-    'Evolução individual',
+    "Evolução individual",
     <FaPencilAlt className="text-[1.5em] text-[#003d99]" />,
   ],
-  ['Relatórios', <FaFileAlt className="text-[1.5em] text-[#003d99]" />],
+  ["Relatórios", <FaFileAlt className="text-[1.5em] text-[#003d99]" />],
 ];
 
 export default function AdminPage() {
@@ -57,6 +57,9 @@ export default function AdminPage() {
                 key={i}
                 variant="ghost"
                 className="flex items-center justify-start gap-4 text-[#002c6c] text-[1em] font-medium h-1/3 border-b border-[#003d99]/20 last:border-b-0 hover:bg-[#e9f1f9]/50 cursor-pointer"
+                onClick={() => {
+                  if (label === "Moradores") router.push("/moradores");
+                }}
               >
                 {icon}
                 <span>{label}</span>
@@ -81,7 +84,7 @@ export default function AdminPage() {
         <div className="mt-8 px-8">
           <Button
             variant="ghost"
-            onClick={() => router.push('/login')}
+            onClick={() => router.push("/login")}
             className="text-[#003d99] hover:underline text-[1.5em] cursor-pointer"
           >
             <BiLogOut />
