@@ -1,4 +1,5 @@
 // src/app/moradores/page.tsx
+// src/app/usuarios/page.tsx
 
 "use client";
 
@@ -10,18 +11,23 @@ import { Button } from "@/components/ui/button";
 import { FilterToolbar } from "@/components/ui/filter-toolbar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { MoradorForm, MoradorFormData } from "@/components/forms/morador-form";
+import { UsuarioForm, UsuarioFormData } from "@/components/forms/usuario-form";
 import { ChevronLeft, ChevronRight, Users, UserCog, Home, Stethoscope, Pill } from "lucide-react";
 import { usePathname } from "next/navigation";
+import { FilterToolbarUsuario } from "@/components/ui/filter-toolbar-usuario";
 // Dados iniciais que serão gerenciados pela página
 const initialData = [
     { id: 1, Nome: "Jane Cooper", CPF: "11111111111", Situação: "Ativo" },
 ];
 
-interface Morador {
-  id: number;
-  Nome: string;
-  CPF: string;
-  Situação: string;
+export interface Usuario {
+  id_usuario: number;
+  nome_usuario: string;
+  nome_completo: string;
+  cpf: string;
+  email: string;
+  funcao: string;
+  situacao: boolean;
 }
 
 const ITEMS_PER_PAGE = 10;
@@ -55,12 +61,12 @@ function SidebarNav() {
 }
 
 export default function ListaMoradoresPage() {
-  const [moradorEditando, setMoradorEditando] = useState<any | null>(null);
+  const [usuarioEditando, setUsuarioEditando] = useState<Usuario | null>(null);
   const router = useRouter();
-  const [moradores, setMoradores] = useState<Morador[]>([]);
+  const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterBy, setFilterBy] = useState("nome");
+  const [filterBy, setFilterBy] = useState("nome_usuario");
   const [currentPage, setCurrentPage] = useState(1);
   const [acessoNegado, setAcessoNegado] = useState(false);
   const [verificado, setVerificado] = useState(false);
@@ -72,14 +78,13 @@ export default function ListaMoradoresPage() {
     if (!accessToken || funcao !== 'Administrador') {
       setAcessoNegado(true);
       setTimeout(() => {
-        router.push('/login');
+        router.push(funcao === 'Cuidador' ? '/admin' : '/login');
       }, 2000);
       setVerificado(true);
       return;
     }
-
-    // Buscar moradores do backend
-    fetch('http://localhost:4000/morador', {
+    // Buscar usuários do backend
+    fetch('http://localhost:4000/usuario', {
       headers: {
         'Authorization': `Bearer ${accessToken}`,
         'Content-Type': 'application/json',
@@ -87,11 +92,11 @@ export default function ListaMoradoresPage() {
     })
       .then(res => res.json())
       .then(data => {
-        setMoradores(Array.isArray(data.data) ? data.data : []);
+        setUsuarios(Array.isArray(data.data) ? data.data : []);
         setVerificado(true);
       })
       .catch(() => {
-        setMoradores([]);
+        setUsuarios([]);
         setVerificado(true);
       });
   }, [router]);
@@ -124,7 +129,7 @@ export default function ListaMoradoresPage() {
     );
   }
 
-    const handleSaveMorador = async (formData: MoradorFormData) => {
+    const handleSaveUsuario = async (formData: UsuarioFormData) => {
       const accessToken = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
       if (!accessToken) {
         alert('Token de acesso não encontrado. Faça login novamente.');
@@ -132,18 +137,21 @@ export default function ListaMoradoresPage() {
       }
       try {
         let response, data;
-        if (moradorEditando) {
+        if (usuarioEditando) {
           // Edição
           const body: any = {
-            nome_completo: formData.nome,
-            rg: formData.rg,
-            situacao: formData.ativo,
+            nome_usuario: formData.nome_usuario,
+            nome_completo: formData.nome_completo,
+            cpf: formData.cpf.replace(/\D/g, ''),
+            email: formData.email,
+            funcao: formData.funcao,
+            situacao: formData.situacao,
           };
-          // Só envia CPF se foi alterado
-          if (formData.cpf.replace(/\D/g, '') !== moradorEditando.cpf) {
-            body.cpf = formData.cpf.replace(/\D/g, '');
+          // Só envia senha se foi alterada
+          if (formData.senha) {
+            body.senha = formData.senha;
           }
-          response = await fetch(`http://localhost:4000/morador/${moradorEditando.id_morador}`, {
+          response = await fetch(`http://localhost:4000/usuario/${usuarioEditando.id_usuario}`, {
             method: 'PATCH',
             headers: {
               'Authorization': `Bearer ${accessToken}`,
@@ -153,52 +161,54 @@ export default function ListaMoradoresPage() {
           });
           data = await response.json();
           if (response.ok) {
-            // Se o backend retorna o morador atualizado em data.morador, use ele
-            const moradorAtualizado = data.morador || data;
-            setMoradores(prev => prev.map(m => m.id_morador === moradorEditando.id_morador ? moradorAtualizado : m));
-            alert('Morador atualizado com sucesso!');
+            const usuarioAtualizado = data.usuario || data;
+            setUsuarios(prev => prev.map(u => u.id_usuario === usuarioEditando.id_usuario ? usuarioAtualizado : u));
+            alert('Usuário atualizado com sucesso!');
           } else {
-            alert(data.message || 'Erro ao atualizar morador.');
+            alert(data.message || 'Erro ao atualizar usuário.');
           }
         } else {
           // Cadastro
-          response = await fetch('http://localhost:4000/morador', {
+          response = await fetch('http://localhost:4000/usuario', {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${accessToken}`,
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-              nome_completo: formData.nome,
-              data_nascimento: formData.nascimento,
+              nome_usuario: formData.nome_usuario,
+              nome_completo: formData.nome_completo,
               cpf: formData.cpf.replace(/\D/g, ''),
-              rg: formData.rg,
-              situacao: formData.ativo,
+              senha: formData.senha,
+              email: formData.email,
+              funcao: formData.funcao,
+              situacao: formData.situacao,
             }),
           });
           data = await response.json();
-          if (response.ok && data.morador) {
-            setMoradores(prev => [...prev, data.morador]);
-            alert('Morador cadastrado com sucesso!');
+          if (response.ok && data.usuario) {
+            setUsuarios(prev => [...prev, data.usuario]);
+            alert('Usuário cadastrado com sucesso!');
           } else {
-            alert(data.message || 'Erro ao cadastrar morador.');
+            alert(data.message || 'Erro ao cadastrar usuário.');
           }
         }
         setIsDialogOpen(false);
-        setMoradorEditando(null);
+        setUsuarioEditando(null);
       } catch (error) {
-        alert('Erro de conexão ao salvar morador.');
+        alert('Erro de conexão ao salvar usuário.');
       }
     };
 
   // Mapeamento correto dos campos para filtro
   const filterMap: Record<string, string> = {
-    id: "id_morador",
-    nome: "nome_completo",
+    id_usuario: "id_usuario",
+    nome_usuario: "nome_usuario",
     cpf: "cpf",
+    email: "email",
     situacao: "situacao"
   };
-  const filteredData = moradores.filter((item) => {
+  const filteredData = usuarios.filter((item) => {
     const searchValue = searchTerm.toLowerCase();
     const field = filterMap[filterBy] || filterBy;
     const itemValue = (item[field] || "").toString().toLowerCase();
@@ -225,45 +235,45 @@ export default function ListaMoradoresPage() {
       </div>
 
       <main className="flex-1 flex flex-col overflow-x-auto p-4 md:p-8">
-          <h1 className="text-2xl font-bold text-[#002c6c] mb-6">Lista de Moradores</h1>
-          
-          <FilterToolbar
-            onSearchChange={setSearchTerm}
-            onFilterChange={setFilterBy}
-            onAddClick={() => setIsDialogOpen(true)}
-            filterValue={filterBy}
-          />
-          
-         <Card className="mt-6 rounded-lg shadow-sm border-[#cfd8e3]">
-            <Table>
-                <TableHeader>
-                    <TableRow>
-                        <TableHead>ID</TableHead>
-                        <TableHead>Nome completo</TableHead>
-                        <TableHead>CPF</TableHead>
-                        <TableHead>Situação</TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-          {paginatedData.map((item, index) => (
-            <TableRow
-              key={item.id_morador ?? item.cpf ?? index}
-              className="cursor-pointer hover:bg-gray-100"
-              onClick={() => {
-                setMoradorEditando(item);
-                setIsDialogOpen(true);
-              }}
-            >
-              <TableCell>{item.id_morador}</TableCell>
-              <TableCell className="font-medium">{item.nome_completo}</TableCell>
-              <TableCell>{item.cpf}</TableCell>
-              <TableCell>{item.situacao ? "Ativo" : "Inativo"}</TableCell>
-            </TableRow>
-          ))}
-                </TableBody>
-            </Table>
-           </Card>
-           {/* Paginação aqui... */}
+        <h1 className="text-2xl font-bold text-[#002c6c] mb-6">Lista de Usuários</h1>
+        <FilterToolbarUsuario
+          onSearchChange={setSearchTerm}
+          onFilterChange={setFilterBy}
+          onAddClick={() => setIsDialogOpen(true)}
+          filterValue={filterBy}
+        />
+        <Card className="mt-6 rounded-lg shadow-sm border-[#cfd8e3]">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>ID</TableHead>
+                <TableHead>Nome de Usuário</TableHead>
+                <TableHead>CPF</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Situação</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {paginatedData.map((item, index) => (
+                <TableRow
+                  key={item.id_usuario ?? item.cpf ?? index}
+                  className="cursor-pointer hover:bg-gray-100"
+                  onClick={() => {
+                    setUsuarioEditando(item);
+                    setIsDialogOpen(true);
+                  }}
+                >
+                  <TableCell>{item.id_usuario}</TableCell>
+                  <TableCell className="font-medium">{item.nome_usuario}</TableCell>
+                  <TableCell>{item.cpf}</TableCell>
+                  <TableCell>{item.email}</TableCell>
+                  <TableCell>{item.situacao ? "Ativo" : "Inativo"}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Card>
+        {/* Paginação aqui... */}
         <div className="flex justify-end items-center mt-4 gap-2">
           <Button
             variant="outline"
@@ -287,23 +297,25 @@ export default function ListaMoradoresPage() {
         <DialogContent className="sm:max-w-[500px] bg-white p-6 shadow-lg rounded-lg border">
           <DialogHeader>
             <DialogTitle className="text-2xl font-bold text-[#002c6c]">
-              {moradorEditando ? 'Editar Morador' : 'Cadastro de Morador'}
+              {usuarioEditando ? 'Editar Usuário' : 'Cadastro de Usuário'}
             </DialogTitle>
             <DialogDescription className="pt-2">
-              {moradorEditando ? 'Edite os dados do morador e salve.' : 'Preencha os dados abaixo para cadastrar um novo morador.'}
+              {usuarioEditando ? 'Edite os dados do usuário e salve.' : 'Preencha os dados abaixo para cadastrar um novo usuário.'}
             </DialogDescription>
           </DialogHeader>
-          <MoradorForm
-            onSubmit={handleSaveMorador}
+          <UsuarioForm
+            onSubmit={handleSaveUsuario}
             onClose={() => {
               setIsDialogOpen(false);
-              setMoradorEditando(null);
+              setUsuarioEditando(null);
             }}
-            initialData={moradorEditando ? {
-              nome: moradorEditando.nome_completo,
-              cpf: moradorEditando.cpf,
-              rg: moradorEditando.rg,
-              ativo: moradorEditando.situacao,
+            initialData={usuarioEditando ? {
+              nome_usuario: usuarioEditando.nome_usuario,
+              nome_completo: usuarioEditando.nome_completo,
+              cpf: usuarioEditando.cpf,
+              email: usuarioEditando.email,
+              funcao: usuarioEditando.funcao,
+              situacao: usuarioEditando.situacao,
             } : undefined}
           />
         </DialogContent>

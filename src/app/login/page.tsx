@@ -42,18 +42,26 @@ export default function LoginPage() {
         body: JSON.stringify(formData),
       });
 
+
       if (!response.ok) {
         throw new Error('Credenciais inválidas');
       }
 
       const data = await response.json();
-      // Store tokens in localStorage or cookies
-      localStorage.setItem('accessToken', data.access_token);
-      localStorage.setItem('refreshToken', data.refresh_token);
-      
-      // Redirect to dashboard
-      router.push('/dashboard');
-      
+      // Store tokens and funcao in localStorage
+      localStorage.setItem('accessToken', data.accessToken);
+      localStorage.setItem('refreshToken', data.refreshToken);
+      localStorage.setItem('funcao', data.funcao);
+
+      // Redireciona conforme a função do usuário
+      if (data.funcao === 'Administrador') {
+        router.push('/admin');
+      } else if (data.funcao === 'Cuidador' || data.funcao === 'Enfermeiro') {
+        router.push('/cuidador');
+      } else {
+        toast.error('Função de usuário não reconhecida.');
+      }
+
     } catch (error) {
       console.error('Login failed:', error);
       toast.error('Falha no login. Verifique suas credenciais.');

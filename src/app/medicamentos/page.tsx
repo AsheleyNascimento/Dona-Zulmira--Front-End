@@ -1,4 +1,4 @@
-// src/app/moradores/page.tsx
+// src/app/medicamentos/page.tsx
 
 "use client";
 
@@ -7,9 +7,9 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { FilterToolbar } from "@/components/ui/filter-toolbar";
+import { FilterToolbarMedicamentos } from "@/components/ui/filter-toolbar-medicamentos";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { MoradorForm, MoradorFormData } from "@/components/forms/morador-form";
+import { MedicamentoForm } from "@/components/forms/medicamento-form";
 import { ChevronLeft, ChevronRight, Users, UserCog, Home, Stethoscope, Pill } from "lucide-react";
 import { usePathname } from "next/navigation";
 // Dados iniciais que serão gerenciados pela página
@@ -17,11 +17,11 @@ const initialData = [
     { id: 1, Nome: "Jane Cooper", CPF: "11111111111", Situação: "Ativo" },
 ];
 
-interface Morador {
-  id: number;
-  Nome: string;
-  CPF: string;
-  Situação: string;
+export interface Medicamento {
+  id_medicamento: number;
+  nome_medicamento: string;
+  situacao: boolean;
+
 }
 
 const ITEMS_PER_PAGE = 10;
@@ -55,12 +55,12 @@ function SidebarNav() {
 }
 
 export default function ListaMoradoresPage() {
-  const [moradorEditando, setMoradorEditando] = useState<any | null>(null);
+  const [medicamentoEditando, setMedicamentoEditando] = useState<Medicamento | null>(null);
   const router = useRouter();
-  const [moradores, setMoradores] = useState<Morador[]>([]);
+  const [medicamentos, setMedicamentos] = useState<Medicamento[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterBy, setFilterBy] = useState("nome");
+  const [filterBy, setFilterBy] = useState("nome_medicamento");
   const [currentPage, setCurrentPage] = useState(1);
   const [acessoNegado, setAcessoNegado] = useState(false);
   const [verificado, setVerificado] = useState(false);
@@ -72,14 +72,13 @@ export default function ListaMoradoresPage() {
     if (!accessToken || funcao !== 'Administrador') {
       setAcessoNegado(true);
       setTimeout(() => {
-        router.push('/login');
+        router.push(funcao === 'Cuidador' ? '/admin' : '/login');
       }, 2000);
       setVerificado(true);
       return;
     }
-
-    // Buscar moradores do backend
-    fetch('http://localhost:4000/morador', {
+    // Buscar medicamentos do backend
+  fetch('http://localhost:4000/medicamentos', {
       headers: {
         'Authorization': `Bearer ${accessToken}`,
         'Content-Type': 'application/json',
@@ -87,11 +86,11 @@ export default function ListaMoradoresPage() {
     })
       .then(res => res.json())
       .then(data => {
-        setMoradores(Array.isArray(data.data) ? data.data : []);
+        setMedicamentos(Array.isArray(data.data) ? data.data : []);
         setVerificado(true);
       })
       .catch(() => {
-        setMoradores([]);
+        setMedicamentos([]);
         setVerificado(true);
       });
   }, [router]);
@@ -124,7 +123,25 @@ export default function ListaMoradoresPage() {
     );
   }
 
-    const handleSaveMorador = async (formData: MoradorFormData) => {
+    const fetchMedicamentos = async () => {
+      const accessToken = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
+      if (!accessToken) return;
+      try {
+        const res = await fetch('http://localhost:4000/medicamentos', {
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+        });
+        const lista = await res.json();
+        setMedicamentos(Array.isArray(lista.data) ? lista.data : []);
+        setCurrentPage(1);
+      } catch {
+        setMedicamentos([]);
+      }
+    };
+
+    const handleSaveMedicamento = async (formData: { nome_medicamento: string; situacao: boolean }) => {
       const accessToken = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
       if (!accessToken) {
         alert('Token de acesso não encontrado. Faça login novamente.');
@@ -132,18 +149,17 @@ export default function ListaMoradoresPage() {
       }
       try {
         let response, data;
-        if (moradorEditando) {
+        if (medicamentoEditando) {
           // Edição
           const body: any = {
-            nome_completo: formData.nome,
-            rg: formData.rg,
-            situacao: formData.ativo,
+            nome_medicamento: formData.nome_medicamento,
+            situacao: formData.situacao,
           };
-          // Só envia CPF se foi alterado
-          if (formData.cpf.replace(/\D/g, '') !== moradorEditando.cpf) {
-            body.cpf = formData.cpf.replace(/\D/g, '');
+          if (!medicamentoEditando.id_medicamento) {
+            alert('ID do medicamento não encontrado.');
+            return;
           }
-          response = await fetch(`http://localhost:4000/morador/${moradorEditando.id_morador}`, {
+          response = await fetch(`http://localhost:4000/medicamentos/${medicamentoEditando.id_medicamento}`, {
             method: 'PATCH',
             headers: {
               'Authorization': `Bearer ${accessToken}`,
@@ -153,52 +169,45 @@ export default function ListaMoradoresPage() {
           });
           data = await response.json();
           if (response.ok) {
-            // Se o backend retorna o morador atualizado em data.morador, use ele
-            const moradorAtualizado = data.morador || data;
-            setMoradores(prev => prev.map(m => m.id_morador === moradorEditando.id_morador ? moradorAtualizado : m));
-            alert('Morador atualizado com sucesso!');
+            alert('Medicamento atualizado com sucesso!');
           } else {
-            alert(data.message || 'Erro ao atualizar morador.');
+            alert(data.message || 'Erro ao atualizar medicamento.');
           }
         } else {
           // Cadastro
-          response = await fetch('http://localhost:4000/morador', {
+          response = await fetch('http://localhost:4000/medicamentos', {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${accessToken}`,
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-              nome_completo: formData.nome,
-              data_nascimento: formData.nascimento,
-              cpf: formData.cpf.replace(/\D/g, ''),
-              rg: formData.rg,
-              situacao: formData.ativo,
+              nome_medicamento: formData.nome_medicamento,
+              situacao: formData.situacao,
             }),
           });
           data = await response.json();
-          if (response.ok && data.morador) {
-            setMoradores(prev => [...prev, data.morador]);
-            alert('Morador cadastrado com sucesso!');
+          if (response.ok && data.medicamento) {
+            alert('Medicamento cadastrado com sucesso!');
           } else {
-            alert(data.message || 'Erro ao cadastrar morador.');
+            alert(data.message || 'Erro ao cadastrar medicamento.');
           }
         }
         setIsDialogOpen(false);
-        setMoradorEditando(null);
+        setMedicamentoEditando(null);
+        await fetchMedicamentos();
       } catch (error) {
-        alert('Erro de conexão ao salvar morador.');
+        alert('Erro de conexão ao salvar medicamento.');
       }
     };
 
   // Mapeamento correto dos campos para filtro
   const filterMap: Record<string, string> = {
-    id: "id_morador",
-    nome: "nome_completo",
-    cpf: "cpf",
+    id_medicamento: "id_medicamento",
+    nome_medicamento: "nome_medicamento",
     situacao: "situacao"
   };
-  const filteredData = moradores.filter((item) => {
+  const filteredData = medicamentos.filter((item) => {
     const searchValue = searchTerm.toLowerCase();
     const field = filterMap[filterBy] || filterBy;
     const itemValue = (item[field] || "").toString().toLowerCase();
@@ -225,45 +234,42 @@ export default function ListaMoradoresPage() {
       </div>
 
       <main className="flex-1 flex flex-col overflow-x-auto p-4 md:p-8">
-          <h1 className="text-2xl font-bold text-[#002c6c] mb-6">Lista de Moradores</h1>
-          
-          <FilterToolbar
-            onSearchChange={setSearchTerm}
-            onFilterChange={setFilterBy}
-            onAddClick={() => setIsDialogOpen(true)}
-            filterValue={filterBy}
-          />
-          
-         <Card className="mt-6 rounded-lg shadow-sm border-[#cfd8e3]">
-            <Table>
-                <TableHeader>
-                    <TableRow>
-                        <TableHead>ID</TableHead>
-                        <TableHead>Nome completo</TableHead>
-                        <TableHead>CPF</TableHead>
-                        <TableHead>Situação</TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-          {paginatedData.map((item, index) => (
-            <TableRow
-              key={item.id_morador ?? item.cpf ?? index}
-              className="cursor-pointer hover:bg-gray-100"
-              onClick={() => {
-                setMoradorEditando(item);
-                setIsDialogOpen(true);
-              }}
-            >
-              <TableCell>{item.id_morador}</TableCell>
-              <TableCell className="font-medium">{item.nome_completo}</TableCell>
-              <TableCell>{item.cpf}</TableCell>
-              <TableCell>{item.situacao ? "Ativo" : "Inativo"}</TableCell>
-            </TableRow>
-          ))}
-                </TableBody>
-            </Table>
-           </Card>
-           {/* Paginação aqui... */}
+        <h1 className="text-2xl font-bold text-[#002c6c] mb-6">Lista de Medicamentos</h1>
+        <FilterToolbarMedicamentos
+          onSearchChange={setSearchTerm}
+          onFilterChange={setFilterBy}
+          onAddClick={() => setIsDialogOpen(true)}
+          filterValue={filterBy}
+        />
+        <Card className="mt-6 rounded-lg shadow-sm border-[#cfd8e3]">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>ID</TableHead>
+                <TableHead>Nome do Medicamento</TableHead>
+                <TableHead>Situação</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {paginatedData.map((item, index) => (
+                <TableRow
+                  key={item.id_medicamento ?? index}
+                  className="cursor-pointer hover:bg-gray-100"
+                  onClick={() => {
+                    setMedicamentoEditando(item);
+                    setIsDialogOpen(true);
+                  }}
+                >
+                  <TableCell>{item.id_medicamento}</TableCell>
+                  <TableCell className="font-medium">{item.nome_medicamento}</TableCell>
+                  <TableCell>{item.situacao ? "Em estoque" : "Sem estoque"}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Card>
+        {/* Paginação aqui... */}
+        {/* Paginação */}
         <div className="flex justify-end items-center mt-4 gap-2">
           <Button
             variant="outline"
@@ -287,23 +293,22 @@ export default function ListaMoradoresPage() {
         <DialogContent className="sm:max-w-[500px] bg-white p-6 shadow-lg rounded-lg border">
           <DialogHeader>
             <DialogTitle className="text-2xl font-bold text-[#002c6c]">
-              {moradorEditando ? 'Editar Morador' : 'Cadastro de Morador'}
+              {medicamentoEditando ? 'Editar Medicamento' : 'Cadastro de Medicamento'}
             </DialogTitle>
             <DialogDescription className="pt-2">
-              {moradorEditando ? 'Edite os dados do morador e salve.' : 'Preencha os dados abaixo para cadastrar um novo morador.'}
+              {medicamentoEditando ? 'Edite os dados do medicamento e salve.' : 'Preencha os dados abaixo para cadastrar um novo medicamento.'}
             </DialogDescription>
           </DialogHeader>
-          <MoradorForm
-            onSubmit={handleSaveMorador}
+          <MedicamentoForm
+            onSubmit={handleSaveMedicamento}
             onClose={() => {
               setIsDialogOpen(false);
-              setMoradorEditando(null);
+              setMedicamentoEditando(null);
+              fetchMedicamentos();
             }}
-            initialData={moradorEditando ? {
-              nome: moradorEditando.nome_completo,
-              cpf: moradorEditando.cpf,
-              rg: moradorEditando.rg,
-              ativo: moradorEditando.situacao,
+            initialData={medicamentoEditando ? {
+              nome_medicamento: medicamentoEditando.nome_medicamento,
+              situacao: medicamentoEditando.situacao,
             } : undefined}
           />
         </DialogContent>
