@@ -27,6 +27,11 @@ const menuColumns = [
       icon: <UserCog className="h-7 w-7 text-[#003d99]" />,
       href: "/usuarios",
     },
+     {
+      label: "Relatório Geral",
+      icon: <UserCog className="h-7 w-7 text-[#003d99]" />,
+      href: "/relatorio-geral",
+    },
   ],
   [
     {
@@ -38,6 +43,11 @@ const menuColumns = [
       label: "Medicos",
       icon: <Briefcase className="h-7 w-7 text-[#003d99]" />,
       href: "/medicos",
+    },
+     {
+      label: "Prescrições",
+      icon: <Briefcase className="h-7 w-7 text-[#003d99]" />,
+      href: "/medicamentos-prescricao",
     },
     
   ],
