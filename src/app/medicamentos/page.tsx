@@ -38,12 +38,12 @@ function SidebarNav() {
   const router = useRouter();
   const pathname = usePathname();
   return (
-     <nav className="flex flex-col gap-2 mt-8 text-base">
+     <nav className="flex flex-col gap-2 mt-8 text-[1em] text-[#002c6c]">
       {navItems.map((item) => (
         <Button
           key={item.label}
-          variant={pathname === item.href ? "secondary" : "ghost"}
-          className="justify-start gap-3 px-3 text-md cursor-pointer"
+           variant="ghost"
+          className={`justify-start gap-3 px-3 cursor-pointer hover:bg-[#e9f1f9]/50 ${pathname === item.href ? "bg-[#e9f1f9]" : ""}`}
           onClick={() => router.push(item.href)}
         >
           {item.icon}
@@ -218,74 +218,99 @@ export default function ListaMoradoresPage() {
   const paginatedData = filteredData.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
   
   const SidebarContent = () => (
-     <aside className="flex h-full flex-col bg-white p-4 border-r border-gray-200">
-        <div className="flex items-center gap-3 p-2">
-            <img src="/logo-ssvp.png" alt="Logo" className="w-12" />
-            <h2 className="text-[#002c6c] text-lg font-bold uppercase tracking-tighter">Casa Dona Zulmira</h2>
+     <aside className="w-64 flex-shrink-0 flex flex-col bg-white p-6 border-r border-[#e9f1f9]">
+        <div className="flex items-center mb-8">
+            <img src="/logo-ssvp.png" alt="Logo" className="w-[3em] mr-2" />
+           <h2 className="text-[#002c6c] text-lg font-bold uppercase tracking-tight">CASA DONA ZULMIRA</h2>
         </div>
         <SidebarNav />
     </aside>
   );
 
   return (
-    <div className="min-h-screen flex flex-row bg-gray-50 font-poppins">
-      <div className="w-64 flex-shrink-0 bg-white">
+    <div className="min-h-screen flex bg-[#e9f1f9] font-poppins">
         <SidebarContent />
-      </div>
 
-      <main className="flex-1 flex flex-col overflow-x-auto p-4 md:p-8">
-        <h1 className="text-2xl font-bold text-[#002c6c] mb-6">Lista de Medicamentos</h1>
+      <main className="flex-1 flex flex-col py-6 px-8">
         <FilterToolbarMedicamentos
           onSearchChange={setSearchTerm}
           onFilterChange={setFilterBy}
           onAddClick={() => setIsDialogOpen(true)}
           filterValue={filterBy}
         />
-        <Card className="mt-6 rounded-lg shadow-sm border-[#cfd8e3]">
+         <h2 className="text-xl font-bold text-[#002c6c] mb-4">
+        Todos os medicamentos</h2>
+        <Card className="rounded-2xl border border-[#cfd8e3] shadow-md bg-white p-4">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>ID</TableHead>
-                <TableHead>Nome do Medicamento</TableHead>
-                <TableHead>Situação</TableHead>
+                <TableHead className="text-[#002c6c] font-semibold">ID</TableHead>
+                <TableHead className="text-[#002c6c] font-semibold">Nome do Medicamento</TableHead>
+                <TableHead className="text-[#002c6c] font-semibold">Situação</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {paginatedData.map((item, index) => (
                 <TableRow
                   key={item.id_medicamento ?? index}
-                  className="cursor-pointer hover:bg-gray-100"
+                  className="hover:bg-[#e9f1f9]/50 cursor-pointer border-b"
                   onClick={() => {
                     setMedicamentoEditando(item);
                     setIsDialogOpen(true);
                   }}
                 >
-                  <TableCell>{item.id_medicamento}</TableCell>
-                  <TableCell className="font-medium">{item.nome_medicamento}</TableCell>
-                  <TableCell>{item.situacao ? "Em estoque" : "Sem estoque"}</TableCell>
+                  <TableCell className="text-gray-700">{item.id_medicamento}</TableCell>
+                  <TableCell className="text-gray-700 font-medium">{item.nome_medicamento}</TableCell>
+                  <TableCell className="text-gray-700">{item.situacao ? "Em estoque" : "Sem estoque"}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
-        </Card>
         {/* Paginação aqui... */}
-        {/* Paginação */}
-        <div className="flex justify-end items-center mt-4 gap-2">
-          <Button
-            variant="outline"
-            disabled={currentPage === 1}
-            onClick={() => setCurrentPage(currentPage - 1)}
-          >
-            Anterior
-          </Button>
-          <Button
-            variant="outline"
-            disabled={currentPage === totalPages || totalPages === 0}
-            onClick={() => setCurrentPage(currentPage + 1)}
-          >
-            Próxima
-          </Button>
-        </div>
+         <div className="flex justify-between items-center mt-6 text-sm text-gray-600">
+                  <span>
+                    Exibindo {(currentPage - 1) * ITEMS_PER_PAGE + 1} a{" "}
+                    {Math.min(currentPage * ITEMS_PER_PAGE, filteredData.length)} de{" "}
+                    {filteredData.length} medicamentos
+                  </span>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-8 h-8 rounded-full hover:bg-[#e9f1f9]/50 cursor-pointer"
+                      onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                      disabled={currentPage === 1}
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                    </Button>
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                      <Button
+                        key={page}
+                        size="sm"
+                        className={`w-8 h-8 rounded-full ${
+                          currentPage === page
+                            ? "bg-[#002c6c] text-white"
+                            : "border border-[#002c6c] text-[#002c6c] hover:bg-[#e9f1f9]"
+                        }`}
+                        onClick={() => setCurrentPage(page)}
+                      >
+                        {page}
+                      </Button>
+                    ))}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-8 h-8 rounded-full hover:bg-[#e9f1f9]/50 cursor-pointer"
+                      onClick={() =>
+                        setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+                      }
+                      disabled={currentPage === totalPages}
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                    </Button>
+                  </div>
+         </div>
+        </Card>
       </main>
 
       {/* Definição do Modal (Dialog) */}
