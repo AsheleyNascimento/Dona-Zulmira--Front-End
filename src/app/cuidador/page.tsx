@@ -4,17 +4,16 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import {
-  UsersRound,
-  LineChart,
-  Pill,
-  FileText,
-  LogOut,
-  UserCircle,
-} from "lucide-react";
+import { UsersRound, LineChart, Pill, LogOut, UserCircle } from "lucide-react";
+import Image from 'next/image';
 
 const menuColumns = [
   [
+    {
+      label: "Moradores",
+      icon: <UsersRound className="h-7 w-7 text-[#003d99]" />,
+      href: "/morador",
+    },
     {
       label: "Precrição-Medicamentos",
       icon: <UsersRound className="h-7 w-7 text-[#003d99]" />,
@@ -23,7 +22,7 @@ const menuColumns = [
     {
       label: "Evolução-Individual",
       icon: <LineChart className="h-7 w-7 text-[#003d99]" />,
-      href: "/evolucao-individual",
+      href: "/morador",
     },
     {
       label: "Relatorio Geral",
@@ -73,7 +72,7 @@ export default function CuidadorPage() {
         `}
       </style>
       <aside className="w-full lg:w-1/4 flex flex-col items-center justify-center bg-white p-6 border-b lg:border-r lg:border-b-0 border-[#e9f1f9]">
-        <img src="/logo-ssvp.png" alt="Logo SSVP Casa Dona Zulmira" className="w-32 mb-4" />
+  <Image src="/logo-ssvp.png" alt="Logo SSVP Casa Dona Zulmira" width={128} height={128} className="w-32 h-auto mb-4" />
         <h2 className="text-[#002c6c] text-base font-bold uppercase text-center">
           Casa Dona Zulmira
         </h2>

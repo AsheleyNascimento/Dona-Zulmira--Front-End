@@ -3,6 +3,7 @@
 "use client";
 
 import { useRouter, usePathname } from "next/navigation";
+import Image from "next/image";
 import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import {
@@ -93,18 +94,27 @@ function SidebarNav() {
   );
 }
 
+type MoradorEditando = {
+  id_morador: number;
+  nome_completo: string;
+  cpf: string;
+  rg?: string;
+  situacao: boolean;
+} | null;
+
 export default function ListaMoradoresPage() {
-  const [moradorEditando, setMoradorEditando] = useState<any | null>(null);
+  const [moradorEditando, setMoradorEditando] = useState<MoradorEditando>(null);
   const router = useRouter();
   const [moradores, setMoradores] = useState<Morador[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterBy, setFilterBy] = useState("nome");
   const [currentPage, setCurrentPage] = useState(1);
   const [acessoNegado, setAcessoNegado] = useState(false);
   const [verificado, setVerificado] = useState(false);
 
-  useEffect(() => {
+  const loadMoradores = async () => {
     const funcao = localStorage.getItem("funcao");
     const accessToken = localStorage.getItem("accessToken");
     if (!accessToken || funcao !== "Administrador") {
@@ -116,22 +126,26 @@ export default function ListaMoradoresPage() {
       return;
     }
 
-    fetch("http://localhost:4000/morador", {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
-      },
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        setMoradores(Array.isArray(data.data) ? data.data : []);
-        setVerificado(true);
-      })
-      .catch(() => {
-        setMoradores([]);
-        setVerificado(true);
+    try {
+      const res = await fetch("http://localhost:4000/morador", {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
       });
-  }, [router]);
+      const data = await res.json();
+      setMoradores(Array.isArray(data.data) ? data.data : []);
+      setVerificado(true);
+    } catch {
+      setMoradores([]);
+      setVerificado(true);
+    }
+  };
+
+  useEffect(() => {
+    void loadMoradores();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   if (!verificado) return <div className="min-h-screen bg-white" />;
 
@@ -146,7 +160,54 @@ export default function ListaMoradoresPage() {
   }
 
   const handleSaveMorador = async (formData: MoradorFormData) => {
-    // ... mesma lógica de salvar
+    try {
+      setIsSaving(true);
+      const accessToken = localStorage.getItem("accessToken");
+      if (!accessToken) throw new Error("Sem token de acesso");
+
+      // Backend normalmente espera nome_completo, cpf (só dígitos), rg, situacao
+      const onlyDigits = (s: string) => s.replace(/\D/g, "");
+      const payload = {
+        nome_completo: formData.nome?.trim(),
+        cpf: onlyDigits(formData.cpf || ""),
+        rg: (formData.rg || "").trim(),
+        situacao: !!formData.ativo,
+      };
+
+      let url = "http://localhost:4000/morador";
+      let method: "POST" | "PATCH" = "POST";
+      if (moradorEditando && moradorEditando.id_morador) {
+        url = `http://localhost:4000/morador/${moradorEditando.id_morador}`;
+        method = "PATCH";
+        // Na edição, não enviar CPF se o backend proibir alterar; mantenha apenas se existir
+        // Remova a linha abaixo para não enviar cpf em PATCH, se necessário:
+        // delete (payload as any).cpf;
+      }
+
+      const res = await fetch(url, {
+        method,
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const txt = await res.text();
+        throw new Error(txt || "Falha ao salvar morador");
+      }
+
+      // Fechar modal e recarregar lista
+      setIsDialogOpen(false);
+      setMoradorEditando(null);
+      await loadMoradores();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Erro ao salvar morador";
+      alert(message);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
 const filterMap: Record<string, keyof Morador> = {
@@ -173,7 +234,7 @@ const filteredData = moradores.filter((item) => {
   const SidebarContent = () => (
     <aside className="w-64 flex-shrink-0 flex flex-col bg-white p-6 border-r border-[#e9f1f9]">
       <div className="flex items-center mb-8">
-        <img src="/logo-ssvp.png" alt="Logo" className="w-[3em] mr-2" />
+  <Image src="/logo-ssvp.png" alt="Logo" className="w-[3em] mr-2" width={48} height={48} />
         <h2 className="text-[#002c6c] text-lg font-bold uppercase tracking-tight">
           CASA DONA ZULMIRA
         </h2>
@@ -311,6 +372,7 @@ return (
             setIsDialogOpen(false);
             setMoradorEditando(null);
           }}
+          saving={isSaving}
           initialData={
             moradorEditando
               ? {

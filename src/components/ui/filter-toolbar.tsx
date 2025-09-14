@@ -54,7 +54,7 @@ export function FilterToolbar({
         </SelectContent>
       </Select>
 
-      <Button onClick={onAddClick} className="flex items-center gap-2 bg-[#002c6c] text-white hover:bg-[#002c6c]/90 cursor-pointer">
+      <Button type="button" onClick={onAddClick} className="flex items-center gap-2 bg-[#002c6c] text-white hover:bg-[#002c6c]/90 cursor-pointer">
         <PlusCircle className="h-5 w-5 " />
         Adicionar Morador
       </Button>

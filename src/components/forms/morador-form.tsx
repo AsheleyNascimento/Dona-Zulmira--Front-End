@@ -6,13 +6,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+// (select imports removed as they are not used here)
 
 export interface MoradorFormData {
   nome: string;
@@ -26,9 +20,10 @@ interface MoradorFormProps {
   onSubmit: (data: MoradorFormData) => void;
   onClose: () => void;
   initialData?: Partial<MoradorFormData>;
+  saving?: boolean;
 }
 
-export function MoradorForm({ onSubmit, onClose, initialData }: MoradorFormProps) {
+export function MoradorForm({ onSubmit, onClose, initialData, saving }: MoradorFormProps) {
   const [ativo, setAtivo] = useState(initialData?.ativo ?? true);
   const [formData, setFormData] = useState({
     nome: initialData?.nome ?? "",
@@ -147,11 +142,11 @@ export function MoradorForm({ onSubmit, onClose, initialData }: MoradorFormProps
       </div>
 
       <div className="flex justify-end gap-2 pt-6">
-        <Button type="button" variant="ghost" onClick={onClose}>
+        <Button type="button" variant="ghost" onClick={onClose} disabled={!!saving}>
           Cancelar
         </Button>
-        <Button type="submit">
-          Gravar
+        <Button type="submit" disabled={!!saving}>
+          {saving ? 'Gravando…' : 'Gravar'}
         </Button>
       </div>
     </form>
