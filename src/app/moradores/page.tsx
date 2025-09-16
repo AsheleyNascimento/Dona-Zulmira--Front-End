@@ -1,6 +1,9 @@
+// src/app/moradores/page.tsx
+
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
+import Image from "next/image";
 import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import {
@@ -12,231 +15,332 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight } from "lucide-react";
 import { FilterToolbar } from "@/components/ui/filter-toolbar";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { MoradorForm, MoradorFormData } from "@/components/forms/morador-form";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Users,
+  UserCog,
+  Home,
+  Stethoscope,
+  Pill,
+} from "lucide-react";
 
-const mockData = [
+interface Morador {
+  id_morador: number;
+  nome_completo: string;
+  cpf: string;
+  rg?: string;
+  situacao: boolean;
+}
+
+const ITEMS_PER_PAGE = 10;
+
+const navItems = [
   {
-    nome: "Jane Cooper",
-    grau: "01",
-    mobilidade: "Autônomo",
-    dependencias: "Higiene, Alimentação",
+    href: "/admin",
+    label: "Menu Principal",
+    icon: <Home className="h-5 w-5" />,
   },
   {
-    nome: "Floyd Miles",
-    grau: "02",
-    mobilidade: "Cadeira de rodas",
-    dependencias: "Higiene",
+    href: "/moradores",
+    label: "Moradores",
+    icon: <Users className="h-5 w-5" />,
   },
   {
-    nome: "Ronald Richards",
-    grau: "01",
-    mobilidade: "Precisa de assistência",
-    dependencias: "Alimentação, Locomoção",
+    href: "/usuarios",
+    label: "Usuários",
+    icon: <UserCog className="h-5 w-5" />,
   },
   {
-    nome: "Marvin McKinney",
-    grau: "03",
-    mobilidade: "Precisa de assistência",
-    dependencias: "Alimentação",
+    href: "/medicos",
+    label: "Médicos",
+    icon: <Stethoscope className="h-5 w-5" />,
   },
   {
-    nome: "Jerome Bell",
-    grau: "03",
-    mobilidade: "Autônomo",
-    dependencias: "Locomoção",
-  },
-  {
-    nome: "Kathryn Murphy",
-    grau: "02",
-    mobilidade: "Cadeira de rodas",
-    dependencias: "Higiene, Alimentação, Locomoção",
-  },
-  {
-    nome: "Jacob Jones",
-    grau: "01",
-    mobilidade: "Autônomo",
-    dependencias: "Alimentação",
-  },
-  {
-    nome: "Kristin Watson",
-    grau: "01",
-    mobilidade: "Autônomo",
-    dependencias: "Higiene",
+    href: "/medicamentos",
+    label: "Medicamentos",
+    icon: <Pill className="h-5 w-5" />,
   },
 ];
 
-const ITEMS_PER_PAGE = 5;
+function SidebarNav() {
+  const router = useRouter();
+  const pathname = usePathname();
+  return (
+    <nav className="flex flex-col gap-2 mt-8 text-[1em] text-[#002c6c]">
+      {navItems.map((item) => (
+        <Button
+          key={item.label}
+          variant="ghost"
+          className={`justify-start gap-3 px-3 cursor-pointer hover:bg-[#e9f1f9]/50 ${
+            pathname === item.href ? "bg-[#e9f1f9]" : ""
+          }`}
+          onClick={() => router.push(item.href)}
+        >
+          {item.icon}
+          {item.label}
+        </Button>
+      ))}
+    </nav>
+  );
+}
+
+type MoradorEditando = {
+  id_morador: number;
+  nome_completo: string;
+  cpf: string;
+  rg?: string;
+  situacao: boolean;
+} | null;
 
 export default function ListaMoradoresPage() {
+  const [moradorEditando, setMoradorEditando] = useState<MoradorEditando>(null);
   const router = useRouter();
+  const [moradores, setMoradores] = useState<Morador[]>([]);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterBy, setFilterBy] = useState("nome");
   const [currentPage, setCurrentPage] = useState(1);
+  const [acessoNegado, setAcessoNegado] = useState(false);
+  const [verificado, setVerificado] = useState(false);
 
-  // Filtrar e buscar dados
-  const filteredData = mockData.filter((item) => {
-    const searchValue = searchTerm.toLowerCase();
-    switch (filterBy) {
-      case "nome":
-        return item.nome.toLowerCase().includes(searchValue);
-      case "grau":
-        return item.grau.toLowerCase().includes(searchValue);
-      case "mobilidade":
-        return item.mobilidade.toLowerCase().includes(searchValue);
-      default:
-        return item.nome.toLowerCase().includes(searchValue);
+  const loadMoradores = async () => {
+    const funcao = localStorage.getItem("funcao");
+    const accessToken = localStorage.getItem("accessToken");
+    if (!accessToken || funcao !== "Administrador") {
+      setAcessoNegado(true);
+      setTimeout(() => {
+        router.push("/login");
+      }, 2000);
+      setVerificado(true);
+      return;
     }
-  });
 
-  // Paginação
-  const totalPages = Math.ceil(filteredData.length / ITEMS_PER_PAGE);
-  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-  const endIndex = startIndex + ITEMS_PER_PAGE;
-  const paginatedData = filteredData.slice(startIndex, endIndex);
+    try {
+      const res = await fetch("http://localhost:4000/morador", {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+      });
+      const data = await res.json();
+      setMoradores(Array.isArray(data.data) ? data.data : []);
+      setVerificado(true);
+    } catch {
+      setMoradores([]);
+      setVerificado(true);
+    }
+  };
 
-  // Efeito para atualizar a página se o número de itens mudar
   useEffect(() => {
-    if (currentPage > totalPages && totalPages > 0) {
-      setCurrentPage(totalPages);
-    }
-  }, [currentPage, totalPages]);
+    void loadMoradores();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  return (
-    <div className="min-h-screen flex bg-[#e9f1f9] font-poppins">
-      <style>
-        {`
-          @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap');
-          .font-poppins {
-            font-family: 'Poppins', sans-serif;
-          }
-        `}
-      </style>
-      <aside className="w-1/5 flex flex-col bg-white p-6 border-r border-[#e9f1f9]">
-        <div className="flex items-center mb-8">
-          <img src="/logo-ssvp.png" alt="Logo" className="w-[3em] mr-2" />
-          <h2 className="text-[#002c6c] text-[1.2em] font-bold uppercase">
-            CASA DONA ZULMIRA
-          </h2>
+  if (!verificado) return <div className="min-h-screen bg-white" />;
+
+  if (acessoNegado) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <div className="bg-red-100 text-red-700 px-6 py-4 rounded shadow text-xl font-bold">
+          Acesso restrito ao usuário! Redirecionando para login...
         </div>
-        <nav className="flex flex-col gap-4 text-[#002c6c] text-[1em]">
-          <Button
-            variant="ghost"
-            className="justify-start hover:bg-[#e9f1f9]/50 cursor-pointer"
-          >
-            Moradores &gt;
-          </Button>
-          <Button
-            variant="ghost"
-            className="justify-start hover:bg-[#e9f1f9]/50 cursor-pointer"
-          >
-            Evoluções individuais &gt;
-          </Button>
-          <Button
-            variant="ghost"
-            className="justify-start hover:bg-[#e9f1f9]/50 cursor-pointer"
-          >
-            Usuários &gt;
-          </Button>
-        </nav>
-      </aside>
+      </div>
+    );
+  }
 
-      <main className="flex-1 flex flex-col py-6 px-8">
-        <FilterToolbar
-          onSearchChange={(value) => setSearchTerm(value)}
-          onFilterChange={(value) => setFilterBy(value)}
-          onAddClick={() => router.push("/cad-morador")}
-        />
+  const handleSaveMorador = async (formData: MoradorFormData) => {
+    try {
+      setIsSaving(true);
+      const accessToken = localStorage.getItem("accessToken");
+      if (!accessToken) throw new Error("Sem token de acesso");
 
-        <Card className="rounded-lg p-0 border border-[#cfd8e3] shadow-sm bg-white">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="text-[#002c6c] font-semibold">
-                  Nome completo
-                </TableHead>
-                <TableHead className="text-[#002c6c] font-semibold">
-                  Grau IPI
-                </TableHead>
-                <TableHead className="text-[#002c6c] font-semibold">
-                  Mobilidade
-                </TableHead>
-                <TableHead className="text-[#002c6c] font-semibold">
-                  Dependência atividades diárias
-                </TableHead>
+      // Backend normalmente espera nome_completo, cpf (só dígitos), rg, situacao
+      const onlyDigits = (s: string) => s.replace(/\D/g, "");
+      const payload = {
+        nome_completo: formData.nome?.trim(),
+        cpf: onlyDigits(formData.cpf || ""),
+        rg: (formData.rg || "").trim(),
+        situacao: !!formData.ativo,
+      };
+
+      let url = "http://localhost:4000/morador";
+      let method: "POST" | "PATCH" = "POST";
+      if (moradorEditando && moradorEditando.id_morador) {
+        url = `http://localhost:4000/morador/${moradorEditando.id_morador}`;
+        method = "PATCH";
+        // Na edição, não enviar CPF se o backend proibir alterar; mantenha apenas se existir
+        // Remova a linha abaixo para não enviar cpf em PATCH, se necessário:
+        // delete (payload as any).cpf;
+      }
+
+      const res = await fetch(url, {
+        method,
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const txt = await res.text();
+        throw new Error(txt || "Falha ao salvar morador");
+      }
+
+      // Fechar modal e recarregar lista
+      setIsDialogOpen(false);
+      setMoradorEditando(null);
+      await loadMoradores();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Erro ao salvar morador";
+      alert(message);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+const filterMap: Record<string, keyof Morador> = {
+  id: "id_morador",
+  nome: "nome_completo",
+  cpf: "cpf",
+  situacao: "situacao",
+};
+
+const filteredData = moradores.filter((item) => {
+  const searchValue = searchTerm.toLowerCase();
+  const field = filterMap[filterBy];
+  const itemValue = (item[field] || "").toString().toLowerCase();
+  return itemValue.includes(searchValue);
+});
+
+
+  const totalPages = Math.ceil(filteredData.length / ITEMS_PER_PAGE);
+  const paginatedData = filteredData.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
+
+  const SidebarContent = () => (
+    <aside className="w-64 flex-shrink-0 flex flex-col bg-white p-6 border-r border-[#e9f1f9]">
+      <div className="flex items-center mb-8">
+  <Image src="/logo-ssvp.png" alt="Logo" className="w-[3em] mr-2" width={48} height={48} />
+        <h2 className="text-[#002c6c] text-lg font-bold uppercase tracking-tight">
+          CASA DONA ZULMIRA
+        </h2>
+      </div>
+      <SidebarNav />
+    </aside>
+  );
+
+return (
+  <div className="min-h-screen flex bg-[#e9f1f9] font-poppins">
+    {/* Sidebar */}
+    <SidebarContent />
+
+    {/* Main */}
+    <main className="flex-1 flex flex-col py-6 px-8">
+      {/* Barra de busca + filtro + botão */}
+      <FilterToolbar
+        onSearchChange={setSearchTerm}
+        onFilterChange={setFilterBy}
+        onAddClick={() => setIsDialogOpen(true)}
+        filterValue={filterBy}
+        // className="mb-6"
+      />
+
+      {/* Título */}
+      <h2 className="text-xl font-bold text-[#002c6c] mb-4">
+        Todos os moradores
+      </h2>
+
+      {/* Tabela */}
+      <Card className="rounded-2xl border border-[#cfd8e3] shadow-md bg-white p-4">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="text-[#002c6c] font-semibold">ID</TableHead>
+              <TableHead className="text-[#002c6c] font-semibold">
+                Nome completo
+              </TableHead>
+              <TableHead className="text-[#002c6c] font-semibold">
+                CPF
+              </TableHead>
+              <TableHead className="text-[#002c6c] font-semibold">
+                Situação
+              </TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {paginatedData.map((item, index) => (
+              <TableRow
+                key={item.id_morador ?? item.cpf ?? index}
+                className="hover:bg-[#e9f1f9]/50 cursor-pointer border-b"
+                onClick={() => {
+                  setMoradorEditando(item);
+                  setIsDialogOpen(true);
+                }}
+              >
+                <TableCell className="text-gray-700">
+                  {item.id_morador}
+                </TableCell>
+                <TableCell className="text-gray-700 font-medium">
+                  {item.nome_completo}
+                </TableCell>
+                <TableCell className="text-gray-700">{item.cpf}</TableCell>
+                <TableCell className="text-gray-700">
+                  {item.situacao ? "Ativo" : "Inativo"}
+                </TableCell>
               </TableRow>
-            </TableHeader>
-            <TableBody>
-              {paginatedData.map((item, index) => (
-                <TableRow
-                  key={index}
-                  className="hover:bg-[#e9f1f9]/50 cursor-pointer"
-                >
-                  <TableCell className="text-[#002c6c]">{item.nome}</TableCell>
-                  <TableCell className="text-[#002c6c]">{item.grau}</TableCell>
-                  <TableCell className="text-[#002c6c]">
-                    {item.mobilidade}
-                  </TableCell>
-                  <TableCell className="text-[#002c6c]">
-                    {item.dependencias}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </Card>
+            ))}
+          </TableBody>
+        </Table>
 
-        <div className="flex justify-between items-center mt-4 text-sm text-[#002c6c]">
+        {/* Paginação */}
+        <div className="flex justify-between items-center mt-6 text-sm text-gray-600">
           <span>
-            Exibindo {startIndex + 1} a{" "}
-            {Math.min(endIndex, filteredData.length)} de {filteredData.length}{" "}
-            moradores
+            Exibindo {(currentPage - 1) * ITEMS_PER_PAGE + 1} a{" "}
+            {Math.min(currentPage * ITEMS_PER_PAGE, filteredData.length)} de{" "}
+            {filteredData.length} moradores
           </span>
           <div className="flex gap-2">
             <Button
               variant="ghost"
               size="sm"
-              className="hover:bg-[#e9f1f9]/50 cursor-pointer"
+              className="w-8 h-8 rounded-full hover:bg-[#e9f1f9]/50 cursor-pointer"
               onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
               disabled={currentPage === 1}
             >
               <ChevronLeft className="w-4 h-4" />
             </Button>
-            {Array.from(
-              { length: Math.min(3, totalPages) },
-              (_, i) => i + 1
-            ).map((page) => (
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
               <Button
                 key={page}
-                variant="ghost"
                 size="sm"
-                className={`hover:bg-[#e9f1f9]/50 cursor-pointer ${
-                  currentPage === page ? "bg-[#e9f1f9]" : ""
+                className={`w-8 h-8 rounded-full ${
+                  currentPage === page
+                    ? "bg-[#002c6c] text-white"
+                    : "border border-[#002c6c] text-[#002c6c] hover:bg-[#e9f1f9]"
                 }`}
                 onClick={() => setCurrentPage(page)}
               >
                 {page}
               </Button>
             ))}
-            {totalPages > 3 && (
-              <>
-                <Button variant="ghost" size="sm" disabled>
-                  ...
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="hover:bg-[#e9f1f9]/50 cursor-pointer"
-                  onClick={() => setCurrentPage(totalPages)}
-                >
-                  {totalPages}
-                </Button>
-              </>
-            )}
             <Button
               variant="ghost"
               size="sm"
-              className="hover:bg-[#e9f1f9]/50 cursor-pointer"
+              className="w-8 h-8 rounded-full hover:bg-[#e9f1f9]/50 cursor-pointer"
               onClick={() =>
                 setCurrentPage((prev) => Math.min(prev + 1, totalPages))
               }
@@ -246,7 +350,43 @@ export default function ListaMoradoresPage() {
             </Button>
           </div>
         </div>
-      </main>
-    </div>
-  );
+      </Card>
+    </main>
+
+    {/* Modal */}
+    <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+      <DialogContent className="sm:max-w-[500px] bg-white p-6 shadow-lg rounded-lg border">
+        <DialogHeader>
+          <DialogTitle className="text-2xl font-bold text-[#002c6c]">
+            {moradorEditando ? "Editar Morador" : "Cadastro de Morador"}
+          </DialogTitle>
+          <DialogDescription className="pt-2">
+            {moradorEditando
+              ? "Edite os dados do morador e salve."
+              : "Preencha os dados abaixo para cadastrar um novo morador."}
+          </DialogDescription>
+        </DialogHeader>
+        <MoradorForm
+          onSubmit={handleSaveMorador}
+          onClose={() => {
+            setIsDialogOpen(false);
+            setMoradorEditando(null);
+          }}
+          saving={isSaving}
+          initialData={
+            moradorEditando
+              ? {
+                  nome: moradorEditando.nome_completo,
+                  cpf: moradorEditando.cpf,
+                  rg: moradorEditando.rg,
+                  ativo: moradorEditando.situacao,
+                }
+              : undefined
+          }
+        />
+      </DialogContent>
+    </Dialog>
+  </div>
+);
+
 }
