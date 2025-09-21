@@ -1,36 +1,86 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Dona Zulmira — Front-End
 
-## Getting Started
+Este repositório contém a interface web do sistema Casa Dona Zulmira, desenvolvido para gerenciamento de moradores, profissionais, medicamentos, relatórios e usuários de uma instituição de acolhimento. O front-end foi construído com **TypeScript** e **React** (Next.js), focando em usabilidade, integração com backend e visual limpo.
 
-First, run the development server:
+---
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## 📋 Funcionalidades Principais
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+- **Autenticação:** Tela de login para usuários autorizados.
+- **Gestão de Moradores:** Cadastro, listagem, edição, evolução individual, prescrição de medicamentos e perfil detalhado.
+- **Gestão de Usuários:** Cadastro, listagem e administração de permissões.
+- **Gestão de Profissionais:** Cadastro e listagem de médicos.
+- **Gestão de Medicamentos:** Cadastro e listagem de medicamentos.
+- **Relatórios Diários Gerais:** Cadastro, visualização e edição de relatórios do dia a dia da instituição.
+- **Navegação Lateral:** Menu lateral responsivo com navegação entre as principais seções.
+- **Identidade Visual:** Logotipo da Casa Dona Zulmira em destaque nas páginas, fonte Poppins, cores institucionais.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 🗂️ Estrutura de Pastas
 
-## Learn More
+- **`src/app/`**
+  - `morador/`, `moradores/`: Listagem, perfil, cadastro e evolução dos moradores.
+  - `usuarios/`: Listagem e administração de usuários do sistema.
+  - `medicos/`, `medicamentos/`: Gestão de médicos e medicamentos.
+  - `relatoriodiariogeral/`: Relatórios diários gerais da casa.
+  - `login/`: Tela de autenticação.
+  - `cad-morador/`: Cadastro de novos moradores.
+- **`src/components/`**
+  - `HeaderBrand.tsx`: Componente de cabeçalho com logo e título institucional.
+  - `forms/usuario-form.tsx`: Formulário de cadastro/edição de usuário.
+  - `ui/`: Componentes de interface reutilizáveis (Input, Button, Label, Switch, etc).
 
-To learn more about Next.js, take a look at the following resources:
+---
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 🚀 Como Executar
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+1. **Clone o repositório:**
+   ```bash
+   git clone https://github.com/AsheleyNascimento/Dona-Zulmira--Front-End.git
+   cd Dona-Zulmira--Front-End
+   ```
+2. **Instale as dependências:**
+   ```bash
+   npm install
+   ```
+3. **Execute o projeto em modo desenvolvimento:**
+   ```bash
+   npm run dev
+   ```
+   O sistema estará disponível em `http://localhost:3000`.
 
-## Deploy on Vercel
+---
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 🧩 Dependências Principais
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- **React / Next.js:** Estrutura SPA e SSR.
+- **TypeScript:** Tipagem estática.
+- **Lucide-React:** Ícones.
+- **Google Fonts (Poppins):** Tipografia institucional.
+- **Outras:** Dependências para UI e formulários podem ser verificadas no `package.json`.
+
+---
+
+## 🎨 Visual & Usabilidade
+
+- Layout com cores institucionais (azul, branco, cinza claro).
+- Sidebar com logo e navegação clara.
+- Componentização para reuso e padronização visual.
+- Responsividade para diferentes tamanhos de tela.
+
+---
+
+## 👤 Autor
+
+- [AsheleyNascimento](https://github.com/AsheleyNascimento)
+
+---
+
+## 📄 Licença
+
+Este projeto está sob licença privada. Para uso, solicite autorização ao autor.
+
+---
+
+**Contribuições são bem-vindas! Sinta-se livre para sugerir melhorias e reportar problemas.**
