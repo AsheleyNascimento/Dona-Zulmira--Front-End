@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Search, Users, LineChart } from 'lucide-react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
+import { LogoutButton } from '@/components/ui/logout-button';
 
 interface Morador {
   id_morador: number;
@@ -111,14 +112,17 @@ export default function MoradorListaPage() {
       </style>
 
       <aside className="w-full lg:w-64 flex flex-col bg-white p-6 border-b lg:border-r lg:border-b-0 border-[#e9f1f9]">
-        <div className="flex flex-col items-center">
-          <Image src="/logo-ssvp.png" alt="Logo SSVP Casa Dona Zulmira" width={96} height={96} className="w-24 h-24 mb-3" />
+        <div className="flex flex-col items-center gap-2">
+          <Image src="/logo-ssvp.png" alt="Logo SSVP Casa Dona Zulmira" width={96} height={96} className="w-24 h-24" />
           <h2 className="text-[#002c6c] text-sm font-bold uppercase text-center">Casa Dona Zulmira</h2>
         </div>
         <LateralNav />
+        <div className="mt-auto pt-6 border-t border-[#e9f1f9]">
+          <LogoutButton />
+        </div>
       </aside>
 
-      <main className="flex-1 flex flex-col p-6 sm:p-8 relative">
+  <main className="flex-1 flex flex-col p-6 sm:p-8 relative">
 
         <div className="w-full bg-white/60 backdrop-blur rounded-3xl shadow-sm p-3 mb-6">
           <div className="flex items-center gap-3 px-2">
@@ -215,6 +219,7 @@ export default function MoradorListaPage() {
             </div>
           </div>
         </Card>
+        {/* Logout agora movido para a barra lateral */}
       </main>
     </div>
   );
@@ -224,8 +229,7 @@ function LateralNav() {
   const router = useRouter();
   const pathname = usePathname();
   const items = [
-    { label: 'Lista de moradores', href: '/morador', icon: <Users className="h-5 w-5" /> },
-    { label: 'Relatórios', href: '/morador/relatorio', icon: <LineChart className="h-5 w-5" /> },
+    { label: 'Relatórios', href: '/relatoriodiariogeral', icon: <LineChart className="h-5 w-5" /> },
   ];
   return (
     <nav className="mt-8 flex flex-col gap-2 text-[0.95rem] text-[#002c6c]">

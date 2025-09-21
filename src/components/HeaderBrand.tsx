@@ -9,6 +9,7 @@ type HeaderBrandProps = {
   className?: string;
   right?: React.ReactNode;
   center?: React.ReactNode;
+  left?: React.ReactNode; // novo slot para conteúdo à esquerda (ex: botão Voltar)
   sticky?: boolean;
   compact?: boolean;
   showBack?: boolean;
@@ -21,6 +22,7 @@ export default function HeaderBrand({
   className = "",
   right,
   center,
+  left,
   sticky = true,
   compact = true,
   showBack = false,
@@ -49,7 +51,8 @@ export default function HeaderBrand({
     >
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0">
-          {showBack && (
+          {/* Prioriza slot left sobre showBack legado */}
+          {left ? left : showBack && (
             <button
               aria-label="Voltar"
               onClick={onBack}

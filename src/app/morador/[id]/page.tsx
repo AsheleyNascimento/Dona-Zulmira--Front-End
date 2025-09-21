@@ -1,46 +1,27 @@
-'use client';
+"use client";
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { NotebookPen, Pencil, Trash2, Search, Plus } from 'lucide-react';
+import { Pencil, Search, Plus, Eye, ArrowLeft, X } from 'lucide-react';
+import { EvolucaoFormModal } from './components/EvolucaoFormModal';
+import { EvolucaoEditModal } from './components/EvolucaoEditModal';
+import { PrescricaoFormModal } from './components/PrescricaoFormModal';
+import { PrescricaoItemEditModal } from './components/PrescricaoItemEditModal';
+import { useEvolucoesIndividuais } from './hooks/useEvolucoesIndividuais';
+import { usePrescricoes } from './hooks/usePrescricoes';
 import HeaderBrand from '@/components/HeaderBrand';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { LogoutButton } from '@/components/ui/logout-button';
 
-interface MoradorDetalhe {
-  id_morador: number;
-  nome_completo: string;
-  cpf?: string;
-  rg?: string;
-  situacao?: boolean;
-}
+interface MoradorDetalhe { id_morador: number; nome_completo: string; cpf?: string; rg?: string; situacao?: boolean; }
+interface EvolucaoItem { id: number; data: string; hora?: string | null; descricao?: string | null; profissional?: string | null; }
 
-interface EvolucaoItem {
-  id: number;
-  data: string; // ISO date
-  hora?: string | null;
-  descricao?: string | null;
-  profissional?: string | null;
-}
-
-interface PrescricaoItem {
-  id: number; // id_prescricao
-  data: string; // ISO date (aplicacao_data_hora ou 1º dia do mes/ano)
-  medico?: string | null; // medico_nome
-  aplicador?: string | null; // u_aplicador
-  horario?: string | null; // HH:mm derivado de aplicacao_data_hora
-  vinculadoPor?: string | null; // vinculado_por
-  observacoes?: string | null; // nome_medicamento + ' — ' + posologia
-  itemId?: number; // id_medicamento_prescricao (para edição)
-  medicamentoId?: number | null; // id_medicamento
-  posologia?: string | null; // posologia do item
-}
+// Prescrições agora fornecidas via hook usePrescricoes
 
 export default function PerfilMoradorPage() {
   const router = useRouter();
@@ -51,73 +32,67 @@ export default function PerfilMoradorPage() {
   const [verificado, setVerificado] = useState(false);
   const [morador, setMorador] = useState<MoradorDetalhe | null>(null);
   const [tab, setTab] = useState<'evolucoes' | 'prescricoes'>('evolucoes');
-  const [evolucoes, setEvolucoes] = useState<EvolucaoItem[]>([]);
-  const [loadingEvolucoes, setLoadingEvolucoes] = useState(false);
+  // Estados de paginação/filtros de evoluções (antes do hook)
   const [ePage, setEPage] = useState(1);
   const [eLimit, setELimit] = useState(10);
-  const [eTotal, setETotal] = useState(0);
-  const [eLastPage, setELastPage] = useState(1);
-  const [eObsFilter, setEObsFilter] = useState('');
+  const [eObsFilter, setEObsFilter] = useState(''); // efetivo (aplicado)
+  const [eSearchRaw, setESearchRaw] = useState(''); // digitação bruta com debounce
   const [eDataInicio, setEDataInicio] = useState(''); // yyyy-mm-dd
   const [eDataFim, setEDataFim] = useState(''); // yyyy-mm-dd
+  // Hook evoluções
+  const { dados: evolucoesDados, loading: loadingEvolucoes, erro: erroEvolucoes, total: evolucoesTotal, lastPage: evolucoesLastPage, refresh: refreshEvolucoes } = useEvolucoesIndividuais({
+    idMorador: id,
+    page: ePage,
+    limit: eLimit,
+    observacoes: eObsFilter,
+    dataInicio: eDataInicio,
+    dataFim: eDataFim,
+  });
+  // Adaptar para shape local
+  const evolucoes: EvolucaoItem[] = evolucoesDados.map(ev => {
+    const dt = new Date(ev.data_hora);
+    const hora = `${String(dt.getHours()).padStart(2,'0')}:${String(dt.getMinutes()).padStart(2,'0')}`;
+    const usuarioExtra = ev as unknown as { usuario?: { nome_usuario?: string; nome_completo?: string } };
+    const profissional = ev.usuario?.nome_completo || usuarioExtra.usuario?.nome_usuario || null;
+    return { id: ev.id_evolucao_individual, data: ev.data_hora, hora, descricao: ev.observacoes, profissional };
+  });
+  const eTotal = evolucoesTotal;
+  const eLastPage = evolucoesLastPage;
   // Seleção de evoluções para copiar
-  const [selectedEvoIds, setSelectedEvoIds] = useState<Set<number>>(new Set());
   const [moradorCarregando, setMoradorCarregando] = useState(true);
-  const [prescricoes, setPrescricoes] = useState<PrescricaoItem[]>([]);
-  const [loadingPrescricoes, setLoadingPrescricoes] = useState(false);
   const [pPage, setPPage] = useState(1);
   const [pLimit, setPLimit] = useState(10);
-  const [pTotal, setPTotal] = useState(0);
-  const [pLastPage, setPLastPage] = useState(1);
-  const [pObsFilter, setPObsFilter] = useState('');
-  const [pDataInicio, setPDataInicio] = useState(''); // yyyy-mm-dd
-  const [pDataFim, setPDataFim] = useState(''); // yyyy-mm-dd
-  // Modal Evolução state
-  const [openEvo, setOpenEvo] = useState(false);
-  const [evoDescricao, setEvoDescricao] = useState('');
-  const [evoSubmitting, setEvoSubmitting] = useState(false);
-  const [evoError, setEvoError] = useState('');
-  const [evoSuccess, setEvoSuccess] = useState('');
-  const MAX_DESC = 1000;
-  const evoFormRef = useRef<HTMLFormElement | null>(null);
+  const [pObsFilter, setPObsFilter] = useState(''); // efetivo
+  const [pSearchRaw, setPSearchRaw] = useState(''); // bruto
+  const [pDataInicio, setPDataInicio] = useState('');
+  const [pDataFim, setPDataFim] = useState('');
+  const {
+    filtered: prescricoesFiltradas,
+    loading: loadingPrescricoes,
+    erro: erroPrescricoes,
+    total: prescricoesTotal,
+    lastPage: prescricoesLastPage,
+    refresh: refreshPrescricoes,
+  } = usePrescricoes({ idMorador: id, page: pPage, limit: pLimit, texto: pObsFilter, dataInicio: pDataInicio, dataFim: pDataFim });
+  // Estados antigos de criação de evolução substituídos por EvolucaoFormModal
+  // (legacy) ref mantida para futuras integrações caso necessário
   // Toast/snackbar
   const [toastMsg, setToastMsg] = useState('');
   // Modal de visualização (formato ficha)
   const [openView, setOpenView] = useState(false);
   const [viewType, setViewType] = useState<'evolucao' | 'prescricao' | null>(null);
   const [viewProfNome, setViewProfNome] = useState('');
+  const [viewCaregiver, setViewCaregiver] = useState('');
   const [viewTexto, setViewTexto] = useState('');
   const [viewDataISO, setViewDataISO] = useState('');
-  // Dialog para editar evolução
+  // Modal de edição (novo componente)
   const [openEdit, setOpenEdit] = useState(false);
-  const [editId, setEditId] = useState<number | null>(null);
-  const [editDescricao, setEditDescricao] = useState('');
-  const [editSubmitting, setEditSubmitting] = useState(false);
-  const [editError, setEditError] = useState('');
-  const [editSuccess, setEditSuccess] = useState('');
+  const [editEvolucao, setEditEvolucao] = useState<EvolucaoItem | null>(null);
   // Modal Prescrição state
-  const [openPresc, setOpenPresc] = useState(false);
-  const [prescSubmitting, setPrescSubmitting] = useState(false);
-  const [prescError, setPrescError] = useState('');
-  const [prescSuccess, setPrescSuccess] = useState('');
-  // Campos da prescrição completa
-  const [pIdMedico, setPIdMedico] = useState<number | ''>('');
-  const [pMes, setPMes] = useState(''); // MM
-  const [pAno, setPAno] = useState(''); // YYYY
-  type PrescItem = { id_medicamento: number | ''; posologia: string };
-  const [pItens, setPItens] = useState<PrescItem[]>([{ id_medicamento: '', posologia: '' }]);
-  // Opções
-  const [medicosOpt, setMedicosOpt] = useState<Array<{ id: number; nome: string }>>([]);
-  const [medicamentosOpt, setMedicamentosOpt] = useState<Array<{ id: number; nome: string }>>([]);
-  const [loadingOpts, setLoadingOpts] = useState(false);
-  // Editar item de prescrição (modal)
   const [openPrescEdit, setOpenPrescEdit] = useState(false);
   const [editPrescItemId, setEditPrescItemId] = useState<number | null>(null);
   const [editPrescMedicamentoId, setEditPrescMedicamentoId] = useState<number | ''>('');
   const [editPrescPosologia, setEditPrescPosologia] = useState('');
-  const [editPrescSubmitting, setEditPrescSubmitting] = useState(false);
-  const [editPrescError, setEditPrescError] = useState('');
-  const [editPrescSuccess, setEditPrescSuccess] = useState('');
 
   useEffect(() => {
     const funcao = typeof window !== 'undefined' ? localStorage.getItem('funcao') : null;
@@ -153,527 +128,91 @@ export default function PerfilMoradorPage() {
 
     // Evoluções são carregadas pelo effect dedicado de paginação/filtro
 
-    // Prescrições são carregadas pelo effect dedicado de paginação
+    // Prescrições agora via hook usePrescricoes
   }, [id, router]);
 
-  // Recarrega prescrições (analítico) quando paginação/filtros mudarem
+  // Reaplica refresh de prescrições quando mudarmos página/limit (hook já depende). Filtros são client-side.
+  useEffect(() => { void refreshPrescricoes(); }, [pPage, pLimit, refreshPrescricoes]);
+
+  // Debounce busca evoluções
   useEffect(() => {
-    const accessToken = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
-    if (!accessToken) return;
-    setLoadingPrescricoes(true);
-    const params = new URLSearchParams();
-    params.set('id_morador', String(id));
-    params.set('page', String(pPage));
-    params.set('limit', String(pLimit));
-    // analítico ainda não aceita filtros de data/busca, faremos client-side
-    fetch(`http://localhost:4000/prescricao/analitico/all?${params.toString()}`, {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
-      },
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        const arr: unknown[] = Array.isArray(data?.data) ? data.data : [];
-        const mapped: PrescricaoItem[] = arr.map((raw) => {
-          const r = raw as Record<string, unknown>;
-          const idp = (r.id_prescricao as number) ?? Math.floor(Math.random() * 1e9);
-          const aplicacao = r.aplicacao_data_hora as string | null | undefined;
-          const mes = (r.mes as string) ?? '';
-          const ano = (r.ano as string) ?? '';
-          let dataIso = new Date().toISOString();
-          if (aplicacao) {
-            const dt = new Date(aplicacao);
-            if (!isNaN(dt.getTime())) dataIso = dt.toISOString();
-          } else if (mes && ano) {
-            const dt = new Date(`${ano}-${mes}-01T00:00:00Z`);
-            if (!isNaN(dt.getTime())) dataIso = dt.toISOString();
-          }
-          const horario = aplicacao ? new Date(aplicacao).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : null;
-          const medico = (r.medico_nome as string) ?? null;
-          const aplicador = (r.aplicador as string) ?? null;
-          const vinculadoPor = (r.vinculado_por as string) ?? null;
-          const nomeMedicamento = (r.nome_medicamento as string) ?? '';
-          const posologia = (r.posologia as string) ?? '';
-          const itemId = (r.id_medicamento_prescricao as number) ?? undefined;
-          const medicamentoId = (r.id_medicamento as number) ?? null;
-          const observacoes = [nomeMedicamento, posologia].filter(Boolean).join(' — ');
-          return { id: idp, data: dataIso, medico, aplicador, horario, vinculadoPor, observacoes, itemId, medicamentoId, posologia };
-        });
-        setPrescricoes(mapped);
-        setPTotal(Number(data?.total ?? mapped.length));
-        setPLastPage(Number(data?.lastPage ?? 1));
-      })
-      .catch(() => {
-        setPrescricoes([]);
-        setPTotal(0);
-        setPLastPage(1);
-      })
-      .finally(() => setLoadingPrescricoes(false));
-  }, [id, pPage, pLimit, pObsFilter, pDataInicio, pDataFim]);
+    const t = setTimeout(() => {
+      setEObsFilter(eSearchRaw);
+      setEPage(1);
+    }, 300);
+    return () => clearTimeout(t);
+  }, [eSearchRaw]);
 
-  // Recarrega evoluções quando filtros/paginação mudarem
+  // Debounce busca prescrições
   useEffect(() => {
-    const accessToken = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
-    if (!accessToken) return;
-    const params = new URLSearchParams();
-    params.set('id_morador', String(id));
-    params.set('page', String(ePage));
-    params.set('limit', String(eLimit));
-    if (eObsFilter.trim()) params.set('observacoes', eObsFilter.trim());
-    if (eDataInicio) params.set('data_inicio', eDataInicio);
-  // Fim inclusivo: inclui todo o dia selecionado
-  if (eDataFim) params.set('data_fim', `${eDataFim}T23:59:59.999`);
+    const t = setTimeout(() => {
+      setPObsFilter(pSearchRaw);
+      setPPage(1);
+    }, 300);
+    return () => clearTimeout(t);
+  }, [pSearchRaw]);
 
-    setLoadingEvolucoes(true);
-    fetch(`http://localhost:4000/evolucao-individual?${params.toString()}`, {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
-      },
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        const listUnknown: unknown = Array.isArray(data?.data) ? data.data : [];
-        const mapped: EvolucaoItem[] = (listUnknown as unknown[]).map((raw) => {
-          const e = raw as Record<string, unknown>;
-          const id = (e.id_evolucao_individual as number) ?? (e.id_evolucao as number) ?? (e.id as number) ?? Math.floor(Math.random() * 1e9);
-          const dataRaw = (e.data_hora as string) ?? (e.data as string) ?? (e.data_evolucao as string) ?? (e.criado_em as string) ?? new Date().toISOString();
-          const dateObj = new Date(dataRaw);
-          const dataIso = dateObj.toISOString();
-          const hora = (e.hora as string) ?? (e.horario as string) ?? `${String(dateObj.getHours()).padStart(2,'0')}:${String(dateObj.getMinutes()).padStart(2,'0')}`;
-          const descricao = (e.descricao as string) ?? (e.observacao as string) ?? (e.observacoes as string) ?? '';
-          let profissional: string | null = null;
-          const usuarioVal = e['usuario'];
-          if (usuarioVal && typeof usuarioVal === 'object') {
-            const nomeUsuario = (usuarioVal as { nome_usuario?: unknown }).nome_usuario;
-            const nome = (usuarioVal as { nome?: unknown }).nome;
-            if (typeof nomeUsuario === 'string') profissional = nomeUsuario;
-            else if (typeof nome === 'string') profissional = nome;
-          }
-          if (!profissional) {
-            const fallbackKeys = ['usuario_nome', 'profissional', 'responsavel', 'cuidador', 'enfermeiro'] as const;
-            for (const k of fallbackKeys) {
-              const v = e[k];
-              if (typeof v === 'string') { profissional = v; break; }
-            }
-          }
-          return { id, data: dataIso, hora, descricao, profissional };
-        });
-        setEvolucoes(mapped);
-        setETotal(Number(data?.total ?? mapped.length));
-        setELastPage(Number(data?.lastPage ?? 1));
-      })
-      .catch(() => {
-        setEvolucoes([]);
-        setETotal(0);
-        setELastPage(1);
-      })
-      .finally(() => setLoadingEvolucoes(false));
-  }, [id, ePage, eLimit, eObsFilter, eDataInicio, eDataFim]);
+  // Limpa seleção quando lista/filtros mudarem
+  // (Removido) Lógica de seleção e cópia de evoluções
 
-  // Limpa seleção quando a lista de evoluções mudar (página/filtros) ou trocar de aba
-  useEffect(() => { setSelectedEvoIds(new Set()); }, [evolucoes, ePage, eLimit, eObsFilter, eDataInicio, eDataFim, tab]);
-
-  const allEvoSelected = evolucoes.length > 0 && evolucoes.every(ev => selectedEvoIds.has(ev.id));
-  const someEvoSelected = !allEvoSelected && evolucoes.some(ev => selectedEvoIds.has(ev.id));
-  const toggleSelectAllEvo = (checked: boolean) => {
-    if (checked) {
-      const s = new Set<number>();
-      evolucoes.forEach(ev => s.add(ev.id));
-      setSelectedEvoIds(s);
-    } else {
-      setSelectedEvoIds(new Set());
-    }
-  };
-  const toggleSelectEvo = (idRow: number, checked: boolean) => {
-    setSelectedEvoIds(prev => {
-      const s = new Set(prev);
-      if (checked) s.add(idRow); else s.delete(idRow);
-      return s;
-    });
-  };
-  const copySelectedEvolucoes = async () => {
-    try {
-      const chosen = evolucoes.filter(ev => selectedEvoIds.has(ev.id));
-      if (chosen.length === 0) return;
-      const lines = chosen.map((ev, idx) => {
-        const dataStr = new Date(ev.data).toLocaleDateString('pt-BR');
-        const horaStr = ev.hora ?? '-';
-        const prof = ev.profissional ?? '-';
-        const desc = (ev.descricao ?? '').trim();
-        return [
-          `(${String(idx + 1).padStart(2,'0')}) Data: ${dataStr}  Hora: ${horaStr}`,
-          `Profissional: ${prof}`,
-          `Intercorrências:`,
-          `${desc}`,
-          `----------------------------------------`,
-        ].join('\n');
-      });
-      const text = lines.join('\n');
-      try {
-        await navigator.clipboard.writeText(text);
-      } catch {
-        const ta = document.createElement('textarea');
-        ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
-        document.body.appendChild(ta); ta.focus(); ta.select();
-        document.execCommand('copy'); document.body.removeChild(ta);
-      }
-      setToastMsg(`${chosen.length} evolução(ões) copiada(s) para a área de transferência.`);
-      setTimeout(() => setToastMsg(''), 2500);
-    } catch {
-      setToastMsg('Não foi possível copiar.');
-      setTimeout(() => setToastMsg(''), 2500);
-    }
-  };
-
-  if (!verificado) return <div className="min-h-screen bg-white" />;
-  if (acessoNegado) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
-        <div className="bg-red-100 text-red-700 px-6 py-4 rounded shadow text-xl font-bold">Acesso restrito ao usuário! Redirecionando para login...</div>
-      </div>
-    );
-  }
+  // Estados iniciais de verificação
+  if (!verificado) return <div className="p-6 text-[#003d99]">Verificando acesso...</div>;
+  if (acessoNegado) return <div className="p-6 text-red-600">Acesso negado. Redirecionando...</div>;
+  if (moradorCarregando) return <div className="p-6 text-[#003d99]">Carregando dados do morador...</div>;
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#e9f1f9] font-poppins">
-      <style>
-        {`
-          @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
-          .font-poppins { font-family: 'Poppins', sans-serif; }
-        `}
-      </style>
-
+    <div className="flex flex-col min-h-screen bg-[#f4f7fb]">
       <HeaderBrand
-        title="Casa Dona Zulmira"
-        compact
-        sticky
-        showBack
-        onBack={() => router.back()}
-        center={<div className="truncate px-4 text-[#002c6c] font-semibold text-base sm:text-lg">{moradorCarregando ? 'Carregando…' : morador?.nome_completo ?? 'Morador'}</div>}
-        right={
-          <div className="flex items-center gap-3 flex-wrap">
-            {/* Botão dinâmico: Evolução ou Prescrição */}
-            {tab === 'evolucoes' ? (
-              <Dialog open={openEvo} onOpenChange={(v) => { setOpenEvo(v); if (!v) { setEvoDescricao(''); setEvoError(''); setEvoSuccess(''); } }}>
-                <DialogTrigger asChild>
-                  <Button size="lg">
-                    <NotebookPen className="mr-2" /> Cadastrar evolução
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="sm:max-w-[640px] bg-white">
-                  <DialogHeader>
-                    <DialogTitle>Registrar evolução</DialogTitle>
-                  </DialogHeader>
-                {evoError && (
-                  <div role="alert" className="mb-2 rounded-md border border-red-200 bg-red-50 text-red-700 px-3 py-2 text-sm">{evoError}</div>
-                )}
-                {evoSuccess && (
-                  <div role="status" className="mb-2 rounded-md border border-green-200 bg-green-50 text-green-700 px-3 py-2 text-sm">{evoSuccess}</div>
-                )}
-                <form
-                  ref={evoFormRef}
-                  onSubmit={async (e) => {
-                    e.preventDefault();
-                    setEvoError('');
-                    setEvoSuccess('');
-                    const text = evoDescricao.trim();
-                    if (text.length < 10) {
-                      setEvoError('Descreva a evolução com pelo menos 10 caracteres.');
-                      return;
-                    }
-                    try {
-                      setEvoSubmitting(true);
-                      const accessToken = localStorage.getItem('accessToken');
-                      const resp = await fetch('http://localhost:4000/evolucao-individual', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
-                        body: JSON.stringify({ id_morador: Number(id), observacoes: text }),
-                      });
-                      if (!resp.ok) {
-                        const msg = await resp.text();
-                        throw new Error(msg || 'Falha ao salvar');
-                      }
-                      setEvoSuccess('Evolução registrada com sucesso.');
-                      setToastMsg('Evolução salva com sucesso!');
-                      setTimeout(() => setToastMsg(''), 3000);
-                      setEvoDescricao('');
-                      // Recarregar a lista na primeira página
-                      setEPage(1);
-                      // Re-trigger do efeito de recarga
-                      const params = new URLSearchParams();
-                      params.set('id_morador', String(id));
-                      params.set('page', '1');
-                      params.set('limit', String(eLimit));
-                      if (eObsFilter.trim()) params.set('observacoes', eObsFilter.trim());
-                      if (eDataInicio) params.set('data_inicio', eDataInicio);
-                      // Fim inclusivo também no refetch pós-salvar
-                      if (eDataFim) params.set('data_fim', `${eDataFim}T23:59:59.999`);
-                      const r2 = await fetch(`http://localhost:4000/evolucao-individual?${params.toString()}`, {
-                        headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-                      });
-                      const d2 = await r2.json();
-                      const listUnknown: unknown = Array.isArray(d2?.data) ? d2.data : [];
-                      const mapped: EvolucaoItem[] = (listUnknown as unknown[]).map((raw) => {
-                        const e = raw as Record<string, unknown>;
-                        const idRow = (e.id_evolucao_individual as number) ?? (e.id_evolucao as number) ?? (e.id as number) ?? Math.floor(Math.random() * 1e9);
-                        const dataRaw = (e.data_hora as string) ?? (e.data as string) ?? (e.data_evolucao as string) ?? (e.criado_em as string) ?? new Date().toISOString();
-                        const dateObj = new Date(dataRaw);
-                        const dataIso = dateObj.toISOString();
-                        const hora = (e.hora as string) ?? (e.horario as string) ?? `${String(dateObj.getHours()).padStart(2,'0')}:${String(dateObj.getMinutes()).padStart(2,'0')}`;
-                        const descricao = (e.descricao as string) ?? (e.observacao as string) ?? (e.observacoes as string) ?? '';
-                        let profissional: string | null = null;
-                        const usuarioVal = e['usuario'];
-                        if (usuarioVal && typeof usuarioVal === 'object') {
-                          const nomeUsuario = (usuarioVal as { nome_usuario?: unknown }).nome_usuario;
-                          const nome = (usuarioVal as { nome?: unknown }).nome;
-                          if (typeof nomeUsuario === 'string') profissional = nomeUsuario;
-                          else if (typeof nome === 'string') profissional = nome;
-                        }
-                        if (!profissional) {
-                          const fallbackKeys = ['usuario_nome', 'profissional', 'responsavel', 'cuidador', 'enfermeiro'] as const;
-                          for (const k of fallbackKeys) {
-                            const v = e[k];
-                            if (typeof v === 'string') { profissional = v; break; }
-                          }
-                        }
-                        return { id: idRow, data: dataIso, hora, descricao, profissional };
-                      });
-                      setEvolucoes(mapped);
-                      setETotal(Number(d2?.total ?? mapped.length));
-                      setELastPage(Number(d2?.lastPage ?? 1));
-                      // Fecha overlay após pequena demora para o usuário perceber sucesso
-                      setTimeout(() => setOpenEvo(false), 500);
-                    } catch {
-                      setEvoError('Não foi possível registrar. Tente novamente.');
-                    } finally {
-                      setEvoSubmitting(false);
-                    }
-                  }}
-                  className="space-y-3 mt-4"
-                >
-                  <Label htmlFor="evo-desc">Observações</Label>
-                  <Textarea
-                    id="evo-desc"
-                    rows={8}
-                    maxLength={MAX_DESC}
-                    value={evoDescricao}
-                    onChange={(e) => setEvoDescricao(e.target.value)}
-                    placeholder="Ex.: Durante o período da manhã, o morador apresentou bom apetite..."
-                  />
-                  <div className="flex items-center justify-between text-xs text-[#6b87b5]">
-                    <span>Dica: descreva fatos observáveis, horários e intervenções.</span>
-                    <span>{evoDescricao.length}/{MAX_DESC}</span>
-                  </div>
-                  <DialogFooter>
-                    <Button type="button" variant="ghost" onClick={() => setOpenEvo(false)}>Cancelar</Button>
-                    <Button type="submit" disabled={evoSubmitting} className="bg-[#003d99] hover:bg-[#002c6c]">
-                      {evoSubmitting ? 'Salvando…' : 'Salvar evolução'}
-                    </Button>
-                  </DialogFooter>
-                </form>
-                </DialogContent>
-              </Dialog>
-            ) : (
-              <Dialog
-                open={openPresc}
-                onOpenChange={async (v) => {
-                  setOpenPresc(v);
-                  if (v) {
-                    // Carrega opções quando abrir
-                    try {
-                      setLoadingOpts(true);
-                      const accessToken = localStorage.getItem('accessToken');
-                      const [rMed, rMeds] = await Promise.all([
-                        fetch('http://localhost:4000/medicos', { headers: { Authorization: `Bearer ${accessToken}` } }),
-                        fetch('http://localhost:4000/medicamentos?limit=50', { headers: { Authorization: `Bearer ${accessToken}` } }),
-                      ]);
-                      const dMed = await rMed.json();
-                      const dMeds = await rMeds.json();
-                      const listMed: unknown[] = Array.isArray(dMed?.data) ? dMed.data : Array.isArray(dMed) ? dMed : [];
-                      const listMeds: unknown[] = Array.isArray(dMeds?.data)
-                        ? dMeds.data
-                        : Array.isArray(dMeds)
-                        ? dMeds
-                        : Array.isArray(dMeds?.medicamentos)
-                        ? dMeds.medicamentos
-                        : [];
-                      setMedicosOpt(
-                        listMed
-                          .map((m: unknown) => {
-                            const r = (m as Record<string, unknown>) || {};
-                            const id = (r.id_medico as number) ?? (r.id as number) ?? 0;
-                            const nome = (r.nome_completo as string) ?? (r.nome as string) ?? '';
-                            return { id, nome };
-                          })
-                          .filter((x) => x.id && x.nome)
-                      );
-                      setMedicamentosOpt(
-                        listMeds
-                          .map((m: unknown) => {
-                            const r = (m as Record<string, unknown>) || {};
-                            const id = (r.id_medicamento as number) ?? (r.id as number) ?? 0;
-                            const nome = (r.nome_medicamento as string) ?? (r.nome as string) ?? '';
-                            return { id, nome };
-                          })
-                          .filter((x) => x.id && x.nome)
-                      );
-                    } catch {
-                      // mantém silencioso; selects ficarão vazios
-                    } finally {
-                      setLoadingOpts(false);
-                    }
-                  } else {
-                    // resetar
-                    setPrescError('');
-                    setPrescSuccess('');
-                    setPIdMedico('');
-                    setPMes('');
-                    setPAno('');
-                    setPItens([{ id_medicamento: '', posologia: '' }]);
-                  }
-                }}
-              >
-                <DialogTrigger asChild>
-                  <Button size="lg">
-                    <NotebookPen className="mr-2" /> Cadastrar prescrição
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="sm:max-w-[640px] bg-white">
-                  <DialogHeader>
-                    <DialogTitle>Registrar prescrição</DialogTitle>
-                  </DialogHeader>
-                  {prescError && (
-                    <div role="alert" className="mb-2 rounded-md border border-red-200 bg-red-50 text-red-700 px-3 py-2 text-sm">{prescError}</div>
-                  )}
-                  {prescSuccess && (
-                    <div role="status" className="mb-2 rounded-md border border-green-200 bg-green-50 text-green-700 px-3 py-2 text-sm">{prescSuccess}</div>
-                  )}
-                  <form
-                    onSubmit={async (e) => {
-                      e.preventDefault();
-                      setPrescError('');
-                      setPrescSuccess('');
-                      // validações
-                      const parsedMedicoId = Number(pIdMedico);
-                      if (!Number.isFinite(parsedMedicoId) || parsedMedicoId <= 0) { setPrescError('Selecione o médico.'); return; }
-                      if (!/^\d{2}$/.test(pMes)) { setPrescError('Informe o mês no formato MM.'); return; }
-                      if (!/^\d{4}$/.test(pAno)) { setPrescError('Informe o ano no formato YYYY.'); return; }
-                      const itensValidos = pItens.filter(i => i.id_medicamento !== '' && i.posologia.trim().length > 0);
-                      if (itensValidos.length === 0) { setPrescError('Adicione ao menos um medicamento com posologia.'); return; }
-                      try {
-                        setPrescSubmitting(true);
-                        const accessToken = localStorage.getItem('accessToken');
-                        const payload = {
-                          id_morador: Number(id),
-                          id_medico: parsedMedicoId,
-                          mes: pMes,
-                          ano: pAno,
-                          itens: itensValidos.map(i => ({ id_medicamento: Number(i.id_medicamento), posologia: i.posologia.trim() })),
-                        };
-                        const resp = await fetch('http://localhost:4000/prescricao/completa', {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
-                          body: JSON.stringify(payload),
-                        });
-                        if (!resp.ok) {
-                          const msg = await resp.text();
-                          throw new Error(msg || 'Falha ao salvar');
-                        }
-                        setPrescSuccess('Prescrição registrada com sucesso.');
-                        setToastMsg('Prescrição salva com sucesso!');
-                        setTimeout(() => setToastMsg(''), 3000);
-                        // Recarregar a lista na primeira página
-                        setPPage(1);
-                        setTimeout(() => setOpenPresc(false), 500);
-                      } catch {
-                        setPrescError('Não foi possível registrar. Tente novamente.');
-                      } finally {
-                        setPrescSubmitting(false);
-                      }
-                    }}
-                    className="space-y-4 mt-4"
-                  >
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                      <div className="sm:col-span-3">
-                        <Label>Médico</Label>
-                        <select
-                          className="mt-1 w-full border border-[#e5eaf1] rounded-md px-3 py-2 text-sm"
-                          disabled={loadingOpts}
-                          value={pIdMedico}
-                          onChange={(e) => setPIdMedico(e.target.value ? Number(e.target.value) : '')}
-                        >
-                          <option value="">Selecione...</option>
-                          {medicosOpt.map((m) => (
-                            <option key={m.id} value={m.id}>{m.nome}</option>
-                          ))}
-                        </select>
-                      </div>
-                      <div>
-                        <Label>Mês (MM)</Label>
-                        <Input value={pMes} onChange={(e) => setPMes(e.target.value)} placeholder="09" maxLength={2} />
-                      </div>
-                      <div>
-                        <Label>Ano (YYYY)</Label>
-                        <Input value={pAno} onChange={(e) => setPAno(e.target.value)} placeholder="2025" maxLength={4} />
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <Label>Itens da prescrição</Label>
-                        <Button type="button" variant="outline" onClick={() => setPItens(prev => [...prev, { id_medicamento: '', posologia: '' }])}>Adicionar item</Button>
-                      </div>
-                      <div className="space-y-3">
-                        {pItens.map((it, idx) => (
-                          <div key={idx} className="grid grid-cols-1 sm:grid-cols-[2fr_3fr_auto] gap-2 items-end">
-                            <div>
-                              <Label>Medicamento</Label>
-                              <select
-                                className="mt-1 w-full border border-[#e5eaf1] rounded-md px-3 py-2 text-sm"
-                                disabled={loadingOpts}
-                                value={it.id_medicamento}
-                                onChange={(e) => {
-                                  const v = e.target.value ? Number(e.target.value) : '';
-                                  setPItens(prev => prev.map((p, i) => i === idx ? { ...p, id_medicamento: v } : p));
-                                }}
-                              >
-                                <option value="">Selecione...</option>
-                                {medicamentosOpt.map((m) => (
-                                  <option key={m.id} value={m.id}>{m.nome}</option>
-                                ))}
-                              </select>
-                            </div>
-                            <div>
-                              <Label>Posologia</Label>
-                              <Input value={it.posologia} onChange={(e) => setPItens(prev => prev.map((p, i) => i === idx ? { ...p, posologia: e.target.value } : p))} placeholder="1 cp 12/12h por 7 dias" />
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <Button type="button" variant="outline" onClick={() => setPItens(prev => prev.filter((_, i) => i !== idx))}>
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    <DialogFooter>
-                      <Button type="button" variant="ghost" onClick={() => setOpenPresc(false)}>Cancelar</Button>
-                      <Button type="submit" disabled={prescSubmitting} className="bg-[#003d99] hover:bg-[#002c6c]">
-                        {prescSubmitting ? 'Salvando…' : 'Salvar prescrição'}
-                      </Button>
-                    </DialogFooter>
-                  </form>
-                </DialogContent>
-              </Dialog>
-            )}
+        center={
+          <div className="flex items-center justify-center">
+            <div
+              className="text-xs sm:text-sm md:text-base font-medium text-[#003d99] max-w-[50vw] sm:max-w-md truncate"
+              title={morador?.nome_completo ? `Morador: ${morador.nome_completo}` : 'Carregando morador...'}
+              aria-label={morador?.nome_completo ? `Nome do morador: ${morador.nome_completo}` : 'Carregando nome do morador'}
+            >
+              {morador?.nome_completo ? (
+                <>{morador.nome_completo}</>
+              ) : (
+                <span className="inline-flex items-center gap-2">
+                  <span className="h-2 w-2 rounded-full bg-[#003d99] animate-pulse" />
+                  <span className="text-[#4a5b78]">Carregando...</span>
+                </span>
+              )}
+            </div>
           </div>
         }
+        left={
+          <Button
+            variant="ghost"
+            className="gap-1 px-2 text-[#003d99] hover:bg-[#e9f1f9]"
+            aria-label="Voltar"
+            title="Voltar"
+            onClick={() => {
+              try { if (typeof window !== 'undefined' && window.history.length > 1) { window.history.back(); return; } } catch {}
+              router.push('/moradores');
+            }}
+          >
+            <ArrowLeft className="h-4 w-4" />
+            <span className="hidden sm:inline">Voltar</span>
+          </Button>
+        }
+        right={tab === 'evolucoes' ? (
+          <EvolucaoFormModal
+            idMorador={id}
+            editando={null}
+            onClose={() => { /* noop */ }}
+            onSaved={async () => { await refreshEvolucoes(); setToastMsg('Evolução registrada com sucesso!'); setTimeout(()=>setToastMsg(''),3000); }}
+          />
+        ) : (
+          <PrescricaoFormModal
+            idMorador={id}
+            onSaved={async () => { await refreshPrescricoes(); setToastMsg('Prescrição criada com sucesso!'); setTimeout(()=>setToastMsg(''),3000); }}
+          />
+        )}
       />
 
       <main className="flex-1 flex flex-col p-6 sm:p-8 relative">
+        {/* Botão Voltar movido para HeaderBrand (slot left) */}
 
         {/* Abas simples */}
         <Card className="bg-white rounded-2xl p-0 shadow-sm overflow-hidden">
@@ -691,12 +230,22 @@ export default function PerfilMoradorPage() {
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#002c6c]" />
                     <Input
-                      className="pl-9 placeholder:text-gray-700"
-                      placeholder="Buscar por observações"
-                      aria-label="Buscar por observações"
-                      value={eObsFilter}
-                      onChange={(e) => { setEObsFilter(e.target.value); setEPage(1); }}
+                      className="pl-9 pr-8 placeholder:text-gray-700"
+                      placeholder="Buscar por texto ou profissional"
+                      aria-label="Buscar evoluções"
+                      value={eSearchRaw}
+                      onChange={(e) => { setESearchRaw(e.target.value); }}
                     />
+                    {eSearchRaw && (
+                      <button
+                        type="button"
+                        aria-label="Limpar busca"
+                        onClick={() => { setESearchRaw(''); setEObsFilter(''); setEPage(1); }}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-[#4a5b78] hover:text-[#003d99]"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    )}
                   </div>
                   <div className="flex items-center gap-2">
                     <label className="text-sm text-[#002c6c]">Início</label>
@@ -721,78 +270,54 @@ export default function PerfilMoradorPage() {
                   </div>
                 </div>
 
-                {/* Ações de seleção/cópia */}
-                <div className="mb-2 flex items-center justify-between">
-                  <div className="text-sm text-[#4a5b78]">
-                    {selectedEvoIds.size > 0 ? `${selectedEvoIds.size} selecionada(s)` : 'Nenhuma selecionada'}
-                  </div>
-                  <Button variant="outline" disabled={selectedEvoIds.size === 0} onClick={copySelectedEvolucoes}>
-                    Copiar selecionadas
-                  </Button>
-                </div>
+                {/* (Removido) Barra de seleção e botão 'Copiar selecionadas' */}
 
-                {loadingEvolucoes ? (
-                  <div className="text-[#6b87b5] text-sm">Carregando evoluções…</div>
-                ) : evolucoes.length === 0 ? (
+                {erroEvolucoes && (
+                  <div role="alert" className="mb-2 rounded-md border border-red-200 bg-red-50 text-red-700 px-3 py-2 text-sm">{erroEvolucoes}</div>
+                )}
+                {loadingEvolucoes && (
+                  <div className="space-y-2" aria-label="Carregando evoluções">
+                    {Array.from({length:3}).map((_,i)=>(<div key={i} className="h-10 rounded bg-[#e2ecf6] animate-pulse" />))}
+                  </div>
+                )}
+                {!loadingEvolucoes && evolucoes.length === 0 && !erroEvolucoes && (
                   <div className="text-[#6b87b5] text-sm">Nenhuma evolução registrada.</div>
-                ) : (
+                )}
+                {!loadingEvolucoes && evolucoes.length > 0 && (
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead className="w-8">
-                          <input
-                            type="checkbox"
-                            aria-label="Selecionar todas"
-                            checked={allEvoSelected}
-                            onChange={(e) => toggleSelectAllEvo(e.currentTarget.checked)}
-                            ref={(el) => { if (el) el.indeterminate = someEvoSelected; }}
-                          />
-                        </TableHead>
+                        {/* Coluna de seleção removida */}
                         <TableHead className="text-[#002c6c]">Data</TableHead>
                         <TableHead className="text-[#002c6c]">Hora</TableHead>
                         <TableHead className="text-[#002c6c]">Profissional</TableHead>
-                        <TableHead className="text-[#002c6c]">Descrição</TableHead>
                         <TableHead className="text-[#002c6c] text-right">Ações</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {evolucoes.map((ev) => (
                         <TableRow key={ev.id} className="hover:bg-[#e9f1f9]/40">
-                          <TableCell>
-                            <input
-                              type="checkbox"
-                              aria-label={`Selecionar evolução ${ev.id}`}
-                              checked={selectedEvoIds.has(ev.id)}
-                              onChange={(e) => toggleSelectEvo(ev.id, e.currentTarget.checked)}
-                            />
-                          </TableCell>
+                          {/* Checkbox de seleção removido */}
                           <TableCell className="text-gray-800">{new Date(ev.data).toLocaleDateString()}</TableCell>
                           <TableCell className="text-gray-700">{ev.hora ?? '-'}</TableCell>
                           <TableCell className="text-gray-700">{ev.profissional ?? '-'}</TableCell>
-                          <TableCell className="text-gray-700 max-w-[560px]">
-                            <div
-                              onClick={() => {
-                                setViewType('evolucao');
-                                setViewProfNome(ev.profissional ?? '');
-                                setViewTexto(ev.descricao ?? '');
-                                setViewDataISO(ev.data);
-                                setOpenView(true);
-                              }}
-                              className="cursor-pointer hover:underline"
-                              style={{ display: '-webkit-box', WebkitLineClamp: 2 as unknown as number, WebkitBoxOrient: 'vertical' as unknown as string, overflow: 'hidden' } as React.CSSProperties}
-                              title={ev.descricao ?? ''}
-                            >
-                              {ev.descricao ?? '-'}
-                            </div>
-                          </TableCell>
                           <TableCell className="text-right">
                             <div className="inline-flex items-center gap-2">
                               <Button
                                 variant="outline"
                                 size="icon"
-                                title="Editar"
-                                onClick={() => { setEditId(ev.id); setEditDescricao(ev.descricao ?? ''); setEditError(''); setEditSuccess(''); setOpenEdit(true); }}
+                                title="Ver"
+                                onClick={() => {
+                                  setViewType('evolucao');
+                                  setViewProfNome(ev.profissional ?? '');
+                                  setViewTexto(ev.descricao ?? '');
+                                  setViewDataISO(ev.data);
+                                  setOpenView(true);
+                                }}
                               >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                              <Button variant="outline" size="icon" title="Editar" onClick={() => { setEditEvolucao(ev); setOpenEdit(true); }}>
                                 <Pencil className="h-4 w-4" />
                               </Button>
                             </div>
@@ -828,12 +353,22 @@ export default function PerfilMoradorPage() {
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#002c6c]" />
                     <Input
-                      className="pl-9 placeholder:text-gray-700"
-                      placeholder="Buscar por observações"
-                      aria-label="Buscar por observações"
-                      value={pObsFilter}
-                      onChange={(e) => { setPObsFilter(e.target.value); setPPage(1); }}
+                      className="pl-9 pr-8 placeholder:text-gray-700"
+                      placeholder="Buscar por medicamento, posologia ou cuidador"
+                      aria-label="Buscar prescrições"
+                      value={pSearchRaw}
+                      onChange={(e) => { setPSearchRaw(e.target.value); }}
                     />
+                    {pSearchRaw && (
+                      <button
+                        type="button"
+                        aria-label="Limpar busca"
+                        onClick={() => { setPSearchRaw(''); setPObsFilter(''); setPPage(1); }}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-[#4a5b78] hover:text-[#003d99]"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    )}
                   </div>
                   <div className="flex items-center gap-2">
                     <label className="text-sm text-[#002c6c]">Início</label>
@@ -858,104 +393,62 @@ export default function PerfilMoradorPage() {
                   </div>
                 </div>
 
-                {loadingPrescricoes ? (
-                  <div className="text-[#6b87b5] text-sm">Carregando prescrições…</div>
-                ) : prescricoes.length === 0 ? (
+                {erroPrescricoes && (
+                  <div role="alert" className="mb-2 rounded-md border border-red-200 bg-red-50 text-red-700 px-3 py-2 text-sm">{erroPrescricoes}</div>
+                )}
+                {loadingPrescricoes && (
+                  <div className="space-y-2" aria-label="Carregando prescrições">
+                    {Array.from({length:3}).map((_,i)=>(<div key={i} className="h-10 rounded bg-[#e2ecf6] animate-pulse" />))}
+                  </div>
+                )}
+                {!loadingPrescricoes && !erroPrescricoes && prescricoesFiltradas.length === 0 && (
                   <div className="text-[#6b87b5] text-sm">Nenhuma prescrição encontrada.</div>
-                ) : (
+                )}
+                {!loadingPrescricoes && !erroPrescricoes && prescricoesFiltradas.length > 0 && (
                   <div className="space-y-4">
                     <Table>
                       <TableHeader>
                         <TableRow>
                           <TableHead className="text-[#002c6c]">Data</TableHead>
                           <TableHead className="text-[#002c6c]">Hora</TableHead>
-                          <TableHead className="text-[#002c6c]">Profissional</TableHead>
-                          <TableHead className="text-[#002c6c]">Descrição</TableHead>
+                          <TableHead className="text-[#002c6c]">Médico</TableHead>
+                          <TableHead className="text-[#002c6c]">Cuidador</TableHead>
                           <TableHead className="text-[#002c6c] text-right">Ações</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {(pObsFilter || pDataInicio || pDataFim
-                          ? prescricoes.filter((pp) => {
-                              const term = pObsFilter.toLowerCase();
-                              const matchesText = term
-                                ? [pp.medico || '', pp.observacoes || '', pp.aplicador || '']
-                                    .join(' ')
-                                    .toLowerCase()
-                                    .includes(term)
-                                : true;
-                              const dateVal = pp.data ? new Date(pp.data) : null;
-                              // Comparação em UTC para evitar problemas de fuso horário
-                              const startBoundary = pDataInicio ? new Date(`${pDataInicio}T00:00:00.000Z`) : null;
-                              const endBoundary = pDataFim ? new Date(`${pDataFim}T23:59:59.999Z`) : null;
-                              const afterStart = startBoundary && dateVal ? dateVal >= startBoundary : true;
-                              const beforeEnd = endBoundary && dateVal ? dateVal <= endBoundary : true;
-                              return matchesText && afterStart && beforeEnd;
-                            })
-                          : prescricoes).map((p, idx) => (
-                          <TableRow key={(p.itemId ?? `${p.id}-${idx}`)} className="hover:bg-[#e9f1f9]/40">
-                            <TableCell className="text-gray-800">{new Date(p.data).toLocaleDateString()}</TableCell>
+                        {prescricoesFiltradas.map((p, idx) => (
+                          <TableRow key={(p.id_medicamento_prescricao ?? `${p.id_prescricao}-${idx}`)} className="hover:bg-[#e9f1f9]/40">
+                            <TableCell className="text-gray-800">{new Date(p.data_iso).toLocaleDateString()}</TableCell>
                             <TableCell className="text-gray-700">{p.horario ?? '-'}</TableCell>
                             <TableCell className="text-gray-700">{p.medico ?? '-'}</TableCell>
-                            <TableCell className="text-gray-700 max-w-[560px]">
-                              <div
-                                onClick={() => {
-                                  setViewType('prescricao');
-                                  setViewProfNome(p.medico ?? '');
-                                  setViewTexto(p.observacoes ?? '');
-                                  setViewDataISO(p.data);
-                                  setOpenView(true);
-                                }}
-                                className="cursor-pointer hover:underline"
-                                style={{ display: '-webkit-box', WebkitLineClamp: 2 as unknown as number, WebkitBoxOrient: 'vertical' as unknown as string, overflow: 'hidden' } as React.CSSProperties}
-                                title={p.observacoes ?? ''}
-                              >
-                                {p.observacoes ?? '-'}
-                              </div>
-                            </TableCell>
+                            <TableCell className="text-gray-700">{(p as unknown as { cuidador?: string | null }).cuidador ?? '-'}</TableCell>
                             <TableCell className="text-right">
                               <div className="inline-flex items-center gap-2">
                                 <Button
                                   variant="outline"
                                   size="icon"
+                                  title="Ver"
+                                  onClick={() => {
+                                    setViewType('prescricao');
+                                    setViewProfNome(p.medico ?? '');
+                                    setViewCaregiver(((p as unknown as { cuidador?: string | null }).cuidador) || '');
+                                    setViewTexto(p.observacoes || '');
+                                    setViewDataISO(p.data_iso);
+                                    setOpenView(true);
+                                  }}
+                                >
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="icon"
                                   title="Editar"
                                   onClick={async () => {
-                                    if (!p.itemId) { alert('Não é possível editar este item.'); return; }
-                                    setEditPrescItemId(p.itemId);
-                                    setEditPrescMedicamentoId(p.medicamentoId ?? '');
-                                    setEditPrescPosologia(p.posologia ?? '');
-                                    setEditPrescError('');
-                                    setEditPrescSuccess('');
-                                    // Carrega opções de medicamentos se ainda não carregadas
-                                    if (medicamentosOpt.length === 0) {
-                                      try {
-                                        setLoadingOpts(true);
-                                        const accessToken = localStorage.getItem('accessToken');
-                                        const rMeds = await fetch('http://localhost:4000/medicamentos?limit=50', { headers: { Authorization: `Bearer ${accessToken}` } });
-                                        const dMeds = await rMeds.json();
-                                        const listMeds: unknown[] = Array.isArray(dMeds?.data)
-                                          ? dMeds.data
-                                          : Array.isArray(dMeds)
-                                          ? dMeds
-                                          : Array.isArray(dMeds?.medicamentos)
-                                          ? dMeds.medicamentos
-                                          : [];
-                                        setMedicamentosOpt(
-                                          listMeds
-                                            .map((m: unknown) => {
-                                              const r = (m as Record<string, unknown>) || {};
-                                              const idm = (r.id_medicamento as number) ?? (r.id as number) ?? 0;
-                                              const nome = (r.nome_medicamento as string) ?? (r.nome as string) ?? '';
-                                              return { id: idm, nome };
-                                            })
-                                            .filter((x) => x.id && x.nome)
-                                        );
-                                      } catch {
-                                        // silencioso
-                                      } finally {
-                                        setLoadingOpts(false);
-                                      }
-                                    }
+                                    if (!p.id_medicamento_prescricao) { alert('Não é possível editar este item.'); return; }
+                                    setEditPrescItemId(p.id_medicamento_prescricao);
+                                    setEditPrescMedicamentoId(p.id_medicamento ?? '');
+                                    setEditPrescPosologia(p.posologia || '');
                                     setOpenPrescEdit(true);
                                   }}
                                 >
@@ -971,18 +464,16 @@ export default function PerfilMoradorPage() {
                     {/* Paginação Prescrições */}
                     <div className="mt-2 flex items-center justify-between text-sm text-[#4a5b78]">
                       <div>
-                        {pTotal > 0 ? (
+                        {prescricoesTotal > 0 ? (
                           <span>
-                            Mostrando {Math.min((pPage - 1) * pLimit + 1, pTotal)}–{Math.min(pPage * pLimit, pTotal)} de {pTotal}
+                            Mostrando {Math.min((pPage - 1) * pLimit + 1, prescricoesTotal)}–{Math.min(pPage * pLimit, prescricoesTotal)} de {prescricoesTotal}
                           </span>
-                        ) : (
-                          <span>Nenhum registro</span>
-                        )}
+                        ) : (<span>Nenhum registro</span>)}
                       </div>
                       <div className="flex items-center gap-2">
                         <Button variant="outline" disabled={pPage <= 1} onClick={() => setPPage((p) => Math.max(1, p - 1))}>Anterior</Button>
-                        <span>Página {pPage} de {pLastPage}</span>
-                        <Button variant="outline" disabled={pPage >= pLastPage} onClick={() => setPPage((p) => Math.min(pLastPage, p + 1))}>Próxima</Button>
+                        <span>Página {pPage} de {prescricoesLastPage}</span>
+                        <Button variant="outline" disabled={pPage >= prescricoesLastPage} onClick={() => setPPage((p) => Math.min(prescricoesLastPage, p + 1))}>Próxima</Button>
                       </div>
                     </div>
                   </div>
@@ -991,10 +482,20 @@ export default function PerfilMoradorPage() {
             )}
           </div>
         </Card>
+  {/* Botão flutuante de logout no canto inferior esquerdo */}
+        <div className="absolute bottom-6 left-6 sm:bottom-8 sm:left-8">
+          <LogoutButton variant="floating" />
+        </div>
       </main>
       {/* Modal de visualização em formato de ficha */}
-      <Dialog open={openView} onOpenChange={(v) => { setOpenView(v); if (!v) { setViewType(null); setViewProfNome(''); setViewTexto(''); setViewDataISO(''); } }}>
-        <DialogContent className="print-container sm:max-w-[760px] bg-white">
+  <Dialog open={openView} onOpenChange={(v) => { setOpenView(v); if (!v) { setViewType(null); setViewProfNome(''); setViewTexto(''); setViewDataISO(''); } }}>
+        <DialogContent className="print-container sm:max-w-[760px] bg-white" aria-describedby={undefined}>
+          {/* Header acessível (título invisível para screen readers exigido pelo Radix) */}
+          <DialogHeader className="sr-only">
+            <DialogTitle>
+              {viewType === 'evolucao' ? 'Ficha de evolução individual' : 'Prescrição de medicamentos'}
+            </DialogTitle>
+          </DialogHeader>
           <div id="print-area" className="print-area space-y-5 px-2 sm:px-4 py-2">
             {/* Cabeçalho com logo e título */}
             <div className="flex items-start gap-3">
@@ -1014,15 +515,23 @@ export default function PerfilMoradorPage() {
                 <span className="ml-1 text-[#0d5fa8] font-semibold">{morador?.nome_completo ?? '-'}</span>
               </p>
               {viewType === 'evolucao' ? (
-                <p>
-                  <span className="font-semibold">Nome do enfermeiro:</span>
-                  <span className="ml-1 text-[#0d5fa8] font-semibold">{viewProfNome || '-'}</span>
-                </p>
+                <>
+                  <p>
+                    <span className="font-semibold">Nome do enfermeiro:</span>
+                    <span className="ml-1 text-[#0d5fa8] font-semibold">{viewProfNome || '-'}</span>
+                  </p>
+                </>
               ) : (
-                <p>
-                  <span className="font-semibold">Nome do médico:</span>
-                  <span className="ml-1 text-[#0d5fa8] font-semibold">{viewProfNome || '-'}</span>
-                </p>
+                <>
+                  <p>
+                    <span className="font-semibold">Nome do médico:</span>
+                    <span className="ml-1 text-[#0d5fa8] font-semibold">{viewProfNome || '-'}</span>
+                  </p>
+                  <p>
+                    <span className="font-semibold">Nome do cuidador:</span>
+                    <span className="ml-1 text-[#0d5fa8] font-semibold">{viewCaregiver || '-'}</span>
+                  </p>
+                </>
               )}
             </div>
 
@@ -1054,7 +563,7 @@ export default function PerfilMoradorPage() {
       </Dialog>
       {/* Conteúdo dedicado à impressão (fora do modal) */}
       <div id="print-ficha" className="hidden">
-  <div className="print-body space-y-5 px-6 py-4">
+        <div className="print-body space-y-5 px-6 py-4">
           <div className="flex items-start gap-3">
             <Image src="/logo-svvp.svg" alt="Casa Dona Zulmira" width={40} height={40} className="h-10 w-10 object-contain" />
             <div className="flex-1">
@@ -1070,15 +579,23 @@ export default function PerfilMoradorPage() {
               <span className="ml-1 text-[#0d5fa8] font-semibold">{morador?.nome_completo ?? '-'}</span>
             </p>
             {viewType === 'evolucao' ? (
-              <p>
-                <span className="font-semibold">Nome do enfermeiro:</span>
-                <span className="ml-1 text-[#0d5fa8] font-semibold">{viewProfNome || '-'}</span>
-              </p>
+              <>
+                <p>
+                  <span className="font-semibold">Nome do enfermeiro:</span>
+                  <span className="ml-1 text-[#0d5fa8] font-semibold">{viewProfNome || '-'}</span>
+                </p>
+              </>
             ) : (
-              <p>
-                <span className="font-semibold">Nome do médico:</span>
-                <span className="ml-1 text-[#0d5fa8] font-semibold">{viewProfNome || '-'}</span>
-              </p>
+              <>
+                <p>
+                  <span className="font-semibold">Nome do médico:</span>
+                  <span className="ml-1 text-[#0d5fa8] font-semibold">{viewProfNome || '-'}</span>
+                </p>
+                <p>
+                  <span className="font-semibold">Nome do cuidador:</span>
+                  <span className="ml-1 text-[#0d5fa8] font-semibold">{viewCaregiver || '-'}</span>
+                </p>
+              </>
             )}
           </div>
           <div className="pt-2">
@@ -1121,138 +638,40 @@ export default function PerfilMoradorPage() {
         `}
       </style>
       {/* Modal para editar item de prescrição */}
-      <Dialog open={openPrescEdit} onOpenChange={(v) => { setOpenPrescEdit(v); if (!v) { setEditPrescError(''); setEditPrescSuccess(''); } }}>
-        <DialogContent className="sm:max-w-[640px] bg-white">
-          <DialogHeader>
-            <DialogTitle>Editar item da prescrição</DialogTitle>
-          </DialogHeader>
-          {editPrescError && (
-            <div role="alert" className="mb-2 rounded-md border border-red-200 bg-red-50 text-red-700 px-3 py-2 text-sm">{editPrescError}</div>
-          )}
-          {editPrescSuccess && (
-            <div role="status" className="mb-2 rounded-md border border-green-200 bg-green-50 text-green-700 px-3 py-2 text-sm">{editPrescSuccess}</div>
-          )}
-          <div className="space-y-3 mt-1">
-            <div>
-              <Label>Medicamento</Label>
-              <select
-                className="mt-1 w-full border border-[#e5eaf1] rounded-md px-3 py-2 text-sm"
-                disabled={loadingOpts}
-                value={editPrescMedicamentoId}
-                onChange={(e) => setEditPrescMedicamentoId(e.target.value ? Number(e.target.value) : '')}
-              >
-                <option value="">Selecione...</option>
-                {medicamentosOpt.map((m) => (
-                  <option key={m.id} value={m.id}>{m.nome}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <Label>Posologia</Label>
-              <Input value={editPrescPosologia} onChange={(e) => setEditPrescPosologia(e.target.value)} placeholder="1 cp 12/12h por 7 dias" />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setOpenPrescEdit(false)}>Cancelar</Button>
-            <Button
-              onClick={async () => {
-                if (!editPrescItemId) { setOpenPrescEdit(false); return; }
-                const parsedMedicamentoId = Number(editPrescMedicamentoId);
-                if (!Number.isFinite(parsedMedicamentoId) || parsedMedicamentoId <= 0) { setEditPrescError('Selecione o medicamento.'); return; }
-                if (!editPrescPosologia.trim()) { setEditPrescError('Informe a posologia.'); return; }
-                try {
-                  setEditPrescSubmitting(true);
-                  const accessToken = localStorage.getItem('accessToken');
-                  const resp = await fetch(`http://localhost:4000/medicamento-prescricao/${editPrescItemId}` , {
-                    method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
-                    body: JSON.stringify({ id_medicamento: parsedMedicamentoId, posologia: editPrescPosologia.trim() }),
-                  });
-                  if (!resp.ok) throw new Error('Falha ao editar');
-                  setEditPrescSuccess('Item atualizado com sucesso.');
-                  setToastMsg('Prescrição atualizada com sucesso!');
-                  setTimeout(() => setToastMsg(''), 3000);
-                  // Recarrega lista de prescrições na primeira página para refletir alterações
-                  setPPage(1);
-                  setTimeout(() => setOpenPrescEdit(false), 500);
-                } catch {
-                  setEditPrescError('Não foi possível editar. Tente novamente.');
-                } finally {
-                  setEditPrescSubmitting(false);
-                }
-              }}
-              disabled={editPrescSubmitting}
-              className="bg-[#003d99] hover:bg-[#002c6c]"
-            >
-              {editPrescSubmitting ? 'Salvando…' : 'Salvar alterações'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+  <PrescricaoItemEditModal
+        open={openPrescEdit}
+        onOpenChange={(v) => { setOpenPrescEdit(v); if (!v) { /* reset handled inside */ } }}
+        itemId={editPrescItemId}
+        medicamentoIdInicial={editPrescMedicamentoId}
+        posologiaInicial={editPrescPosologia}
+        onSaved={async () => { await refreshPrescricoes(); setToastMsg('Prescrição atualizada com sucesso!'); setTimeout(()=>setToastMsg(''),3000); }}
+      />
 
-      {/* Modal para editar evolução */}
-      <Dialog open={openEdit} onOpenChange={(v) => { setOpenEdit(v); if (!v) { setEditError(''); setEditSuccess(''); } }}>
-        <DialogContent className="sm:max-w-[640px] bg-white">
-          <DialogHeader>
-            <DialogTitle>Editar evolução</DialogTitle>
-          </DialogHeader>
-          {editError && (
-            <div role="alert" className="mb-2 rounded-md border border-red-200 bg-red-50 text-red-700 px-3 py-2 text-sm">{editError}</div>
-          )}
-          {editSuccess && (
-            <div role="status" className="mb-2 rounded-md border border-green-200 bg-green-50 text-green-700 px-3 py-2 text-sm">{editSuccess}</div>
-          )}
-          <div className="space-y-2">
-            <Label htmlFor="edit-desc">Observações</Label>
-            <Textarea id="edit-desc" rows={6} value={editDescricao} onChange={(e) => setEditDescricao(e.target.value)} />
-          </div>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setOpenEdit(false)}>Cancelar</Button>
-            <Button
-              onClick={async () => {
-                if (!editId) return setOpenEdit(false);
-                const text = editDescricao.trim();
-                if (text.length < 10) { setEditError('Descreva a evolução com pelo menos 10 caracteres.'); return; }
-                try {
-                  setEditSubmitting(true);
-                  const accessToken = localStorage.getItem('accessToken');
-                  const resp = await fetch(`http://localhost:4000/evolucao-individual/${editId}`, {
-                    method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
-                    body: JSON.stringify({ observacoes: text }),
-                  });
-                  if (!resp.ok) throw new Error('Falha ao editar');
-                  setEditSuccess('Evolução atualizada com sucesso.');
-                  // Recarrega a lista sem perder filtros
-                  setEPage(1);
-                  setToastMsg('Evolução atualizada com sucesso!');
-                  setTimeout(() => setToastMsg(''), 3000);
-                  setTimeout(() => setOpenEdit(false), 500);
-                } catch {
-                  setEditError('Não foi possível editar. Tente novamente.');
-                } finally {
-                  setEditSubmitting(false);
-                }
-              }}
-              disabled={editSubmitting}
-              className="bg-[#003d99] hover:bg-[#002c6c]"
-            >
-              {editSubmitting ? 'Salvando…' : 'Salvar alterações'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Modal de edição de evolução (novo componente) */}
+  <EvolucaoEditModal
+        evolucao={editEvolucao ? {
+          id_evolucao_individual: editEvolucao.id,
+          data_hora: editEvolucao.data,
+          observacoes: editEvolucao.descricao || '',
+          usuario: editEvolucao.profissional ? { id_usuario: 0, nome_completo: editEvolucao.profissional } : undefined,
+        } : null}
+        open={openEdit}
+        onOpenChange={(v) => { setOpenEdit(v); if (!v) { setEditEvolucao(null); } }}
+        onSaved={async () => { await refreshEvolucoes(); setToastMsg('Evolução atualizada com sucesso!'); setTimeout(()=>setToastMsg(''),3000); }}
+      />
       {/* Botão flutuante substituir "N" por "+" que abre o modal de criação */}
       <button
         aria-label={tab === 'evolucoes' ? 'Cadastrar evolução' : 'Nova prescrição'}
         title={tab === 'evolucoes' ? 'Cadastrar evolução' : 'Nova prescrição'}
-        onClick={() => (tab === 'evolucoes' ? setOpenEvo(true) : setOpenPresc(true))}
+        onClick={() => (tab === 'evolucoes'
+          ? document.querySelector<HTMLButtonElement>('button[aria-label="Cadastrar evolução"]')?.click()
+          : document.querySelector<HTMLButtonElement>('button[data-trigger="prescricao-create"]')?.click())}
         className="fixed left-4 bottom-4 h-12 w-12 rounded-full bg-[#003d99] text-white shadow-lg flex items-center justify-center hover:bg-[#002c6c]"
       >
         <Plus className="h-6 w-6" />
       </button>
       {/* Toast / Snackbar */}
-      {toastMsg && (
+  {toastMsg && (
         <div role="status" aria-live="polite" className="fixed top-4 right-4 z-50 bg-white text-[#003d99] border border-[#e5eaf1] shadow-lg rounded-md px-4 py-3">
           {toastMsg}
         </div>

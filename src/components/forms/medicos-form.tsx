@@ -3,19 +3,15 @@
 "use client";
 
 import { useState } from "react";
+import toast from "react-hot-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+// (select imports removed – not used in this form)
 
 
 export interface MedicosFormData {
+  id_medico?: number;
   nome_completo: string;
   crm: string;
   situacao: boolean;
@@ -25,7 +21,7 @@ export interface MedicosFormData {
 interface MedicosFormProps {
   onSubmit?: (data: MedicosFormData) => void;
   onClose: () => void;
-  initialData?: Partial<MedicosFormData>;
+  initialData?: Partial<MedicosFormData> & { id_medico?: number };
 }
 
 
@@ -46,16 +42,16 @@ export function MedicosForm({ onSubmit, onClose, initialData }: MedicosFormProps
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.nome_completo) {
-      alert("O nome do médico é obrigatório.");
+      toast.error("O nome do médico é obrigatório.");
       return;
     }
     if (!formData.crm) {
-      alert("O CRM é obrigatório.");
+      toast.error("O CRM é obrigatório.");
       return;
     }
     const accessToken = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
     if (!accessToken) {
-      alert('Token de acesso não encontrado. Faça login novamente.');
+      toast.error('Token de acesso não encontrado. Faça login novamente.');
       return;
     }
     try {
@@ -78,9 +74,9 @@ export function MedicosForm({ onSubmit, onClose, initialData }: MedicosFormProps
         });
         data = await response.json();
         if (response.ok) {
-          alert('Médico atualizado com sucesso!');
+          toast.success('Médico atualizado com sucesso!');
         } else {
-          alert(data.message || 'Erro ao atualizar médico.');
+          toast.error(data.message || 'Erro ao atualizar médico.');
         }
       } else {
         // Cadastro
@@ -93,17 +89,19 @@ export function MedicosForm({ onSubmit, onClose, initialData }: MedicosFormProps
           body: JSON.stringify(payload),
         });
         data = await response.json();
-        if (response.ok && data.medico) {
-          alert('Médico cadastrado com sucesso!');
+        if (response.ok) {
+          // Aceita diferentes formatos: {medico}, {data}, ou o objeto direto
+          // const medicoResp = (data && (data.medico ?? data.data ?? data)) || null;
+          toast.success('Médico cadastrado com sucesso!');
         } else {
-          console.error('Erro detalhado:', data);
-          alert((data.message || JSON.stringify(data) || 'Erro ao cadastrar médico.'));
+          const msg = (data && (data.message || data.error)) || 'Erro ao cadastrar médico.';
+          toast.error(msg);
         }
       }
       if (onSubmit) onSubmit(payload);
       onClose();
-    } catch (error) {
-      alert('Erro de conexão ao salvar médico.');
+    } catch {
+      toast.error('Erro de conexão ao salvar médico.');
     }
   };
 

@@ -3,6 +3,7 @@
 "use client";
 
 import { useState } from "react";
+import toast from "react-hot-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -43,12 +44,12 @@ export function MedicamentoForm({ onSubmit, onClose, initialData }: MedicamentoF
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.nome_medicamento) {
-      alert("O nome do medicamento é obrigatório.");
+      toast.error("O nome do medicamento é obrigatório.");
       return;
     }
     const accessToken = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
     if (!accessToken) {
-      alert('Token de acesso não encontrado. Faça login novamente.');
+      toast.error('Token de acesso não encontrado. Faça login novamente.');
       return;
     }
     try {
@@ -70,9 +71,9 @@ export function MedicamentoForm({ onSubmit, onClose, initialData }: MedicamentoF
         });
         data = await response.json();
         if (response.ok) {
-          alert('Medicamento atualizado com sucesso!');
+          toast.success('Medicamento atualizado com sucesso!');
         } else {
-          alert(data.message || 'Erro ao atualizar medicamento.');
+          toast.error(data.message || 'Erro ao atualizar medicamento.');
         }
       } else {
         // Cadastro
@@ -86,15 +87,15 @@ export function MedicamentoForm({ onSubmit, onClose, initialData }: MedicamentoF
         });
         data = await response.json();
         if (response.ok && data.medicamento) {
-          alert('Medicamento cadastrado com sucesso!');
+          toast.success('Medicamento cadastrado com sucesso!');
         } else {
-          alert(data.message || 'Erro ao cadastrar medicamento.');
+          toast.error(data.message || 'Erro ao cadastrar medicamento.');
         }
       }
       if (onSubmit) onSubmit(payload);
       onClose();
     } catch (error) {
-      alert('Erro de conexão ao salvar medicamento.');
+      toast.error('Erro de conexão ao salvar medicamento.');
     }
   };
 
