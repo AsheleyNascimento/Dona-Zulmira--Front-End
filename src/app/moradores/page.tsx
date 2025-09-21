@@ -4,7 +4,9 @@
 
 import { useRouter, usePathname } from "next/navigation";
 import Image from "next/image";
+import { LogoutButton } from "@/components/ui/logout-button";
 import { useState, useEffect } from "react";
+import toast from "react-hot-toast";
 import { Card } from "@/components/ui/card";
 import {
   Table,
@@ -33,6 +35,7 @@ import {
   Stethoscope,
   Pill,
 } from "lucide-react";
+import { FileText } from "lucide-react";
 
 interface Morador {
   id_morador: number;
@@ -45,16 +48,6 @@ interface Morador {
 const ITEMS_PER_PAGE = 10;
 
 const navItems = [
-  {
-    href: "/admin",
-    label: "Menu Principal",
-    icon: <Home className="h-5 w-5" />,
-  },
-  {
-    href: "/moradores",
-    label: "Moradores",
-    icon: <Users className="h-5 w-5" />,
-  },
   {
     href: "/usuarios",
     label: "Usuários",
@@ -202,9 +195,12 @@ export default function ListaMoradoresPage() {
       setIsDialogOpen(false);
       setMoradorEditando(null);
       await loadMoradores();
+      toast.success(
+        moradorEditando ? "Morador atualizado com sucesso!" : "Morador cadastrado com sucesso!"
+      );
     } catch (err) {
       const message = err instanceof Error ? err.message : "Erro ao salvar morador";
-      alert(message);
+      toast.error(message);
     } finally {
       setIsSaving(false);
     }
@@ -240,6 +236,9 @@ const filteredData = moradores.filter((item) => {
         </h2>
       </div>
       <SidebarNav />
+      <div className="mt-auto pt-6 border-t border-[#e9f1f9]">
+        <LogoutButton />
+      </div>
     </aside>
   );
 
@@ -249,7 +248,7 @@ return (
     <SidebarContent />
 
     {/* Main */}
-    <main className="flex-1 flex flex-col py-6 px-8">
+    <main className="relative flex-1 flex flex-col py-6 px-8">
       {/* Barra de busca + filtro + botão */}
       <FilterToolbar
         onSearchChange={setSearchTerm}
@@ -258,12 +257,6 @@ return (
         filterValue={filterBy}
         // className="mb-6"
       />
-
-      {/* Título */}
-      <h2 className="text-xl font-bold text-[#002c6c] mb-4">
-        Todos os moradores
-      </h2>
-
       {/* Tabela */}
       <Card className="rounded-2xl border border-[#cfd8e3] shadow-md bg-white p-4">
         <Table>
@@ -388,5 +381,4 @@ return (
     </Dialog>
   </div>
 );
-
 }

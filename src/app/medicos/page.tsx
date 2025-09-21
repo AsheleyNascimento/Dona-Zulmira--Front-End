@@ -4,8 +4,9 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { LogoutButton } from "@/components/ui/logout-button";
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { FilterToolbarMedicos } from "@/components/ui/filter-toolbar-medicos";
@@ -13,10 +14,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { MedicosForm } from "@/components/forms/medicos-form";
 import { ChevronLeft, ChevronRight, Users, UserCog, Home, Stethoscope, Pill } from "lucide-react";
 import { usePathname } from "next/navigation";
-// Dados iniciais que serão gerenciados pela página
-const initialData = [
-    { id: 1, Nome: "Jane Cooper", CPF: "11111111111", Situação: "Ativo" },
-];
+import Image from "next/image";
+//
 
 export interface Medico {
   id_medico: number;
@@ -29,10 +28,8 @@ export interface Medico {
 const ITEMS_PER_PAGE = 10;
 
 const navItems = [
-    { href: "/admin", label: "Menu Principal", icon: <Home className="h-5 w-5" /> },
     { href: "/moradores", label: "Moradores", icon: <Users className="h-5 w-5" /> },
     { href: "/usuarios", label: "Usuários", icon: <UserCog className="h-5 w-5" /> },
-    { href: "/medicos", label: "Médicos", icon: <Stethoscope className="h-5 w-5" /> },
     { href: "/medicamentos", label: "Medicamentos", icon: <Pill className="h-5 w-5" /> },
 ];
 
@@ -104,19 +101,7 @@ export default function ListaMoradoresPage() {
       });
   }, [router]);
 
-  // Proteção de rota: só Administrador pode acessar
-
-  useEffect(() => {
-    const funcao = typeof window !== 'undefined' ? localStorage.getItem('funcao') : null;
-    const accessToken = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
-    if (!accessToken || funcao !== 'Administrador') {
-      setAcessoNegado(true);
-      setTimeout(() => {
-        router.push('/login');
-      }, 2000);
-    }
-    setVerificado(true);
-  }, [router]);
+  // Proteção de rota duplicada removida
 
   if (!verificado) {
     // Renderiza uma tela em branco até verificar
@@ -132,88 +117,19 @@ export default function ListaMoradoresPage() {
     );
   }
 
-    const handleSaveUsuario = async (formData: UsuarioFormData) => {
-      const accessToken = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
-      if (!accessToken) {
-        alert('Token de acesso não encontrado. Faça login novamente.');
-        return;
-      }
-      try {
-        let response, data;
-        if (usuarioEditando) {
-          // Edição
-          const body: any = {
-            nome_usuario: formData.nome_usuario,
-            nome_completo: formData.nome_completo,
-            cpf: formData.cpf.replace(/\D/g, ''),
-            email: formData.email,
-            funcao: formData.funcao,
-            situacao: formData.situacao,
-          };
-          // Só envia senha se foi alterada
-          if (formData.senha) {
-            body.senha = formData.senha;
-          }
-          response = await fetch(`http://localhost:4000/usuario/${usuarioEditando.id_usuario}`, {
-            method: 'PATCH',
-            headers: {
-              'Authorization': `Bearer ${accessToken}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(body),
-          });
-          data = await response.json();
-          if (response.ok) {
-            const usuarioAtualizado = data.usuario || data;
-            setUsuarios(prev => prev.map(u => u.id_usuario === usuarioEditando.id_usuario ? usuarioAtualizado : u));
-            alert('Usuário atualizado com sucesso!');
-          } else {
-            alert(data.message || 'Erro ao atualizar usuário.');
-          }
-        } else {
-          // Cadastro
-          response = await fetch('http://localhost:4000/usuario', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${accessToken}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              nome_usuario: formData.nome_usuario,
-              nome_completo: formData.nome_completo,
-              cpf: formData.cpf.replace(/\D/g, ''),
-              senha: formData.senha,
-              email: formData.email,
-              funcao: formData.funcao,
-              situacao: formData.situacao,
-            }),
-          });
-          data = await response.json();
-          if (response.ok && data.usuario) {
-            setUsuarios(prev => [...prev, data.usuario]);
-            alert('Usuário cadastrado com sucesso!');
-          } else {
-            alert(data.message || 'Erro ao cadastrar usuário.');
-          }
-        }
-        setIsDialogOpen(false);
-        setUsuarioEditando(null);
-      } catch (error) {
-        alert('Erro de conexão ao salvar usuário.');
-      }
-    };
+    // handlers específicos de usuários removidos (não utilizados nesta página)
 
   // Mapeamento correto dos campos para filtro
-  const filterMap: Record<string, string> = {
+  const filterMap: Record<string, keyof Medico> = {
     id_medico: "id_medico",
     nome_completo: "nome_completo",
     crm: "crm",
-    situacao: "situacao"
+    situacao: "situacao",
   };
   const filteredData = medicos.filter((item) => {
     const searchValue = searchTerm.toLowerCase();
-    const field = filterMap[filterBy] || filterBy;
-    const itemValue = (item[field] || "").toString().toLowerCase();
+    const key = (filterMap[filterBy] ?? "nome_completo") as keyof Medico;
+    const itemValue = String(item[key] ?? "").toLowerCase();
     return itemValue.includes(searchValue);
   });
 
@@ -223,10 +139,13 @@ export default function ListaMoradoresPage() {
   const SidebarContent = () => (
      <aside className="w-64 flex-shrink-0 flex flex-col bg-white p-6 border-r border-[#e9f1f9]">
         <div className="flex items-center mb-8">
-            <img src="/logo-ssvp.png" alt="Logo" className="w-[3em] mr-2" />
+            <Image src="/logo-ssvp.png" alt="Logo" className="w-[3em] mr-2" width={48} height={48} />
             <h2 className="text-[#002c6c] text-lg font-bold uppercase tracking-tight">CASA DONA ZULMIRA </h2>
           </div>
         <SidebarNav />
+        <div className="mt-auto pt-6 border-t border-[#e9f1f9]">
+          <LogoutButton />
+        </div>
     </aside>
   );
 
@@ -234,7 +153,7 @@ export default function ListaMoradoresPage() {
     <div className="min-h-screen flex bg-[#e9f1f9] font-poppins">
         <SidebarContent />
 
-      <main className="flex-1 flex flex-col py-6 px-8">
+      <main className="relative flex-1 flex flex-col py-6 px-8">
         <FilterToolbarMedicos
           onSearchChange={setSearchTerm}
           onFilterChange={setFilterBy}

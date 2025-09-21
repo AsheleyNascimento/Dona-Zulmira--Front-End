@@ -3,8 +3,9 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { LogoutButton } from "@/components/ui/logout-button";
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { FilterToolbarMedicamentos } from "@/components/ui/filter-toolbar-medicamentos";
@@ -12,10 +13,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { MedicamentoForm } from "@/components/forms/medicamento-form";
 import { ChevronLeft, ChevronRight, Users, UserCog, Home, Stethoscope, Pill } from "lucide-react";
 import { usePathname } from "next/navigation";
-// Dados iniciais que serão gerenciados pela página
-const initialData = [
-    { id: 1, Nome: "Jane Cooper", CPF: "11111111111", Situação: "Ativo" },
-];
+import Image from "next/image";
+import toast from 'react-hot-toast';
+//
 
 export interface Medicamento {
   id_medicamento: number;
@@ -27,11 +27,9 @@ export interface Medicamento {
 const ITEMS_PER_PAGE = 10;
 
 const navItems = [
-    { href: "/admin", label: "Menu Principal", icon: <Home className="h-5 w-5" /> },
     { href: "/moradores", label: "Moradores", icon: <Users className="h-5 w-5" /> },
     { href: "/usuarios", label: "Usuários", icon: <UserCog className="h-5 w-5" /> },
     { href: "/medicos", label: "Médicos", icon: <Stethoscope className="h-5 w-5" /> },
-    { href: "/medicamentos", label: "Medicamentos", icon: <Pill className="h-5 w-5" /> },
 ];
 
 function SidebarNav() {
@@ -151,7 +149,7 @@ export default function ListaMoradoresPage() {
         let response, data;
         if (medicamentoEditando) {
           // Edição
-          const body: any = {
+          const body: { nome_medicamento: string; situacao: boolean } = {
             nome_medicamento: formData.nome_medicamento,
             situacao: formData.situacao,
           };
@@ -169,9 +167,9 @@ export default function ListaMoradoresPage() {
           });
           data = await response.json();
           if (response.ok) {
-            alert('Medicamento atualizado com sucesso!');
+            toast.success('Medicamento atualizado com sucesso!');
           } else {
-            alert(data.message || 'Erro ao atualizar medicamento.');
+            toast.error(data.message || 'Erro ao atualizar medicamento.');
           }
         } else {
           // Cadastro
@@ -188,29 +186,29 @@ export default function ListaMoradoresPage() {
           });
           data = await response.json();
           if (response.ok && data.medicamento) {
-            alert('Medicamento cadastrado com sucesso!');
+            toast.success('Medicamento cadastrado com sucesso!');
           } else {
-            alert(data.message || 'Erro ao cadastrar medicamento.');
+            toast.error(data.message || 'Erro ao cadastrar medicamento.');
           }
         }
         setIsDialogOpen(false);
         setMedicamentoEditando(null);
         await fetchMedicamentos();
-      } catch (error) {
-        alert('Erro de conexão ao salvar medicamento.');
+      } catch {
+        toast.error('Erro de conexão ao salvar medicamento.');
       }
     };
 
   // Mapeamento correto dos campos para filtro
-  const filterMap: Record<string, string> = {
+  const filterMap: Record<string, keyof Medicamento> = {
     id_medicamento: "id_medicamento",
     nome_medicamento: "nome_medicamento",
-    situacao: "situacao"
+    situacao: "situacao",
   };
   const filteredData = medicamentos.filter((item) => {
     const searchValue = searchTerm.toLowerCase();
-    const field = filterMap[filterBy] || filterBy;
-    const itemValue = (item[field] || "").toString().toLowerCase();
+    const key = (filterMap[filterBy] ?? "nome_medicamento") as keyof Medicamento;
+    const itemValue = String(item[key] ?? "").toLowerCase();
     return itemValue.includes(searchValue);
   });
 
@@ -219,11 +217,14 @@ export default function ListaMoradoresPage() {
   
   const SidebarContent = () => (
      <aside className="w-64 flex-shrink-0 flex flex-col bg-white p-6 border-r border-[#e9f1f9]">
-        <div className="flex items-center mb-8">
-            <img src="/logo-ssvp.png" alt="Logo" className="w-[3em] mr-2" />
-           <h2 className="text-[#002c6c] text-lg font-bold uppercase tracking-tight">CASA DONA ZULMIRA</h2>
-        </div>
+    <div className="flex items-center mb-8">
+      <Image src="/logo-ssvp.png" alt="Logo" className="w-[3em] mr-2" width={48} height={48} />
+       <h2 className="text-[#002c6c] text-lg font-bold uppercase tracking-tight">CASA DONA ZULMIRA</h2>
+    </div>
         <SidebarNav />
+        <div className="mt-auto pt-6 border-t border-[#e9f1f9]">
+          <LogoutButton />
+        </div>
     </aside>
   );
 
@@ -231,7 +232,7 @@ export default function ListaMoradoresPage() {
     <div className="min-h-screen flex bg-[#e9f1f9] font-poppins">
         <SidebarContent />
 
-      <main className="flex-1 flex flex-col py-6 px-8">
+      <main className="relative flex-1 flex flex-col py-6 px-8">
         <FilterToolbarMedicamentos
           onSearchChange={setSearchTerm}
           onFilterChange={setFilterBy}
@@ -311,6 +312,7 @@ export default function ListaMoradoresPage() {
                   </div>
          </div>
         </Card>
+        {/* Logout agora movido para a barra lateral */}
       </main>
 
       {/* Definição do Modal (Dialog) */}

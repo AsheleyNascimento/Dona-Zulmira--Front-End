@@ -5,20 +5,20 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import toast from "react-hot-toast";
+import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { FilterToolbar } from "@/components/ui/filter-toolbar";
+// import { FilterToolbar } from "@/components/ui/filter-toolbar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { MoradorForm, MoradorFormData } from "@/components/forms/morador-form";
+// import { MoradorForm, MoradorFormData } from "@/components/forms/morador-form";
 import { UsuarioForm, UsuarioFormData } from "@/components/forms/usuario-form";
 import { ChevronLeft, ChevronRight, Users, UserCog, Home, Stethoscope, Pill } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { FilterToolbarUsuario } from "@/components/ui/filter-toolbar-usuario";
-// Dados iniciais que serão gerenciados pela página
-const initialData = [
-    { id: 1, Nome: "Jane Cooper", CPF: "11111111111", Situação: "Ativo" },
-];
+import { LogoutButton } from "@/components/ui/logout-button";
+import Image from "next/image";
+//
 
 export interface Usuario {
   id_usuario: number;
@@ -30,12 +30,19 @@ export interface Usuario {
   situacao: boolean;
 }
 
+// Resposta potencial das APIs de usuário (PATCH/POST)
+interface UsuarioApiResponse {
+  usuario?: Usuario;      // objeto retornado em criação/atualização
+  message?: string;       // mensagem de erro/sucesso eventual
+  data?: Usuario[];       // usado em listagens (consistência)
+  // Permite campos extras sem recorrer a 'any'
+  [key: string]: unknown;
+}
+
 const ITEMS_PER_PAGE = 10;
 
 const navItems = [
-    { href: "/admin", label: "Menu Principal", icon: <Home className="h-5 w-5" /> },
     { href: "/moradores", label: "Moradores", icon: <Users className="h-5 w-5" /> },
-    { href: "/usuarios", label: "Usuários", icon: <UserCog className="h-5 w-5" /> },
     { href: "/medicos", label: "Médicos", icon: <Stethoscope className="h-5 w-5" /> },
     { href: "/medicamentos", label: "Medicamentos", icon: <Pill className="h-5 w-5" /> },
 ];
@@ -136,14 +143,23 @@ export default function ListaMoradoresPage() {
     const handleSaveUsuario = async (formData: UsuarioFormData) => {
       const accessToken = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
       if (!accessToken) {
-        alert('Token de acesso não encontrado. Faça login novamente.');
+        toast.error('Token de acesso não encontrado. Faça login novamente.');
         return;
       }
       try {
-        let response, data;
+  let response: Response;
+  let data: UsuarioApiResponse;
         if (usuarioEditando) {
           // Edição
-          const body: any = {
+          const body: {
+            nome_usuario: string;
+            nome_completo: string;
+            cpf: string;
+            email: string;
+            funcao: string;
+            situacao: boolean;
+            senha?: string;
+          } = {
             nome_usuario: formData.nome_usuario,
             nome_completo: formData.nome_completo,
             cpf: formData.cpf.replace(/\D/g, ''),
@@ -165,11 +181,11 @@ export default function ListaMoradoresPage() {
           });
           data = await response.json();
           if (response.ok) {
-            const usuarioAtualizado = data.usuario || data;
+            const usuarioAtualizado: Usuario = data.usuario || (data as unknown as Usuario);
             setUsuarios(prev => prev.map(u => u.id_usuario === usuarioEditando.id_usuario ? usuarioAtualizado : u));
-            alert('Usuário atualizado com sucesso!');
+            toast.success('Usuário atualizado com sucesso!');
           } else {
-            alert(data.message || 'Erro ao atualizar usuário.');
+            toast.error(data.message || 'Erro ao atualizar usuário.');
           }
         } else {
           // Cadastro
@@ -192,30 +208,30 @@ export default function ListaMoradoresPage() {
           data = await response.json();
           if (response.ok && data.usuario) {
             setUsuarios(prev => [...prev, data.usuario]);
-            alert('Usuário cadastrado com sucesso!');
+            toast.success('Usuário cadastrado com sucesso!');
           } else {
-            alert(data.message || 'Erro ao cadastrar usuário.');
+            toast.error(data.message || 'Erro ao cadastrar usuário.');
           }
         }
         setIsDialogOpen(false);
         setUsuarioEditando(null);
-      } catch (error) {
-        alert('Erro de conexão ao salvar usuário.');
+      } catch {
+        toast.error('Erro de conexão ao salvar usuário.');
       }
     };
 
   // Mapeamento correto dos campos para filtro
-  const filterMap: Record<string, string> = {
+  const filterMap: Record<string, keyof Usuario> = {
     id_usuario: "id_usuario",
     nome_usuario: "nome_usuario",
     cpf: "cpf",
     email: "email",
-    situacao: "situacao"
+    situacao: "situacao",
   };
   const filteredData = usuarios.filter((item) => {
     const searchValue = searchTerm.toLowerCase();
-    const field = filterMap[filterBy] || filterBy;
-    const itemValue = (item[field] || "").toString().toLowerCase();
+    const key = (filterMap[filterBy] ?? "nome_usuario") as keyof Usuario;
+    const itemValue = String(item[key] ?? "").toLowerCase();
     return itemValue.includes(searchValue);
   });
 
@@ -224,8 +240,8 @@ export default function ListaMoradoresPage() {
   
   const SidebarContent = () => (
      <aside className="w-64 flex-shrink-0 flex flex-col bg-white p-6 border-r border-[#e9f1f9]">
-        <div className="flex items-center mb-8">
-            <img src="/logo-ssvp.png" alt="Logo" className="w-[3em] mr-2" />
+    <div className="flex items-center mb-8">
+      <Image src="/logo-ssvp.png" alt="Logo" className="w-[3em] mr-2" width={48} height={48} />
               <h2 className="text-[#002c6c] text-lg font-bold uppercase tracking-tight">
 
                     CASA DONA ZULMIRA
@@ -233,13 +249,16 @@ export default function ListaMoradoresPage() {
               </h2>       
         </div>
         <SidebarNav />
+        <div className="mt-auto pt-6 border-t border-[#e9f1f9]">
+          <LogoutButton />
+        </div>
     </aside>
   );
 
   return (
     <div className="min-h-screen flex bg-[#e9f1f9] font-poppins">    
         <SidebarContent />     
-      <main className="flex-1 flex flex-col py-6 px-8">
+  <main className="flex-1 flex flex-col py-6 px-8 relative">
        
         <FilterToolbarUsuario
           onSearchChange={setSearchTerm}
@@ -327,6 +346,9 @@ export default function ListaMoradoresPage() {
                   </div>
                 </div>
         </Card>
+
+        {/* Logout agora movido para a barra lateral */}
+
       </main>
 
       {/* Definição do Modal (Dialog) */}

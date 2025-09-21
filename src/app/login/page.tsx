@@ -4,7 +4,8 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+// removed unused Card imports
+import Image from 'next/image';
 import { FaUser, FaLock } from 'react-icons/fa';
 import { toast } from 'react-hot-toast';
 
@@ -42,9 +43,22 @@ export default function LoginPage() {
         body: JSON.stringify(formData),
       });
 
-
       if (!response.ok) {
-        throw new Error('Credenciais inválidas');
+        // Tenta extrair mensagem do backend
+        let message = 'Falha no login. Verifique suas credenciais.';
+        try {
+          const errBody = await response.json();
+          const msg = errBody?.message;
+          if (Array.isArray(msg)) message = msg.join(', ');
+          else if (typeof msg === 'string') message = msg;
+        } catch {}
+
+        if (response.status === 401) {
+          message = 'Credenciais inválidas.';
+        }
+
+        toast.error(message);
+        return; // não prossegue
       }
 
       const data = await response.json();
@@ -53,18 +67,21 @@ export default function LoginPage() {
       localStorage.setItem('refreshToken', data.refreshToken);
       localStorage.setItem('funcao', data.funcao);
 
+      // Feedback de sucesso
+      toast.success('Logado com sucesso!');
+
       // Redireciona conforme a função do usuário
-      if (data.funcao === 'Administrador') {
-        router.push('/admin');
+        if (data.funcao === 'Administrador') {
+          router.push('/usuarios');
       } else if (data.funcao === 'Cuidador' || data.funcao === 'Enfermeiro') {
-        router.push('/cuidador');
+        router.push("/morador");
       } else {
         toast.error('Função de usuário não reconhecida.');
       }
 
     } catch (error) {
       console.error('Login failed:', error);
-      toast.error('Falha no login. Verifique suas credenciais.');
+      toast.error('Erro ao conectar ao servidor. Tente novamente.');
     } finally {
       setLoading(false);
     }
@@ -72,7 +89,7 @@ export default function LoginPage() {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-white p-6">
-      <img src="/logo-ssvp.png" alt="Logo" className="w-32 mb-4" />
+  <Image src="/logo-ssvp.png" alt="Logo" width={128} height={128} className="w-32 mb-4" priority />
 
       <h1 className="text-xl font-bold text-blue-900 mb-6 text-center">
         CASA DONA ZULMIRA
