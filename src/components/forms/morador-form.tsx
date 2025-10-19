@@ -81,7 +81,7 @@ export function MoradorForm({ onSubmit, onClose, initialData, saving }: MoradorF
     <form onSubmit={handleSubmit} className="flex flex-col gap-6 pt-4">
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         <div className="md:col-span-2">
-          <Label htmlFor="nome">Nome completo</Label>
+          <Label htmlFor="nome" className="mb-1">Nome completo</Label>
           <Input
             id="nome"
             value={formData.nome}
@@ -92,7 +92,7 @@ export function MoradorForm({ onSubmit, onClose, initialData, saving }: MoradorF
         </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:col-span-2">
           <div>
-            <Label htmlFor="cpf">CPF</Label>
+            <Label htmlFor="cpf" className="mb-1">CPF</Label>
             <Input
               id="cpf"
               value={formData.cpf}
@@ -105,7 +105,7 @@ export function MoradorForm({ onSubmit, onClose, initialData, saving }: MoradorF
         </div>
         <div className="md:col-span-2 grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
-            <Label htmlFor="rg">RG</Label>
+            <Label htmlFor="rg" className="mb-1">RG</Label>
             <Input
               id="rg"
               value={formData.rg}

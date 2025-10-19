@@ -109,7 +109,7 @@ export function MedicosForm({ onSubmit, onClose, initialData }: MedicosFormProps
     <form onSubmit={handleSubmit} className="flex flex-col gap-6 pt-4">
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         <div>
-          <Label htmlFor="nome_completo">Nome Completo</Label>
+          <Label htmlFor="nome_completo" className="mb-1">Nome Completo</Label>
           <Input
             id="nome_completo"
             value={formData.nome_completo}
@@ -119,7 +119,7 @@ export function MedicosForm({ onSubmit, onClose, initialData }: MedicosFormProps
           />
         </div>
         <div>
-          <Label htmlFor="crm">CRM</Label>
+          <Label htmlFor="crm" className="mb-1">CRM</Label>
           <Input
             id="crm"
             value={formData.crm}

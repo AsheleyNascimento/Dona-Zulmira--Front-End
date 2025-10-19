@@ -34,6 +34,7 @@ export function MedicamentoForm({ onSubmit, onClose, initialData }: MedicamentoF
   const [formData, setFormData] = useState({
     nome_medicamento: initialData?.nome_medicamento ?? "",
   });
+
   const isEditing = !!initialData;
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -59,6 +60,7 @@ export function MedicamentoForm({ onSubmit, onClose, initialData }: MedicamentoF
         situacao: Boolean(situacao),
       };
       console.log('Enviando para backend:', payload);
+      
       if (isEditing) {
         // Edição
         response = await fetch(`http://localhost:4000/medicamento/${initialData?.id_medicamento}`, {
@@ -76,7 +78,6 @@ export function MedicamentoForm({ onSubmit, onClose, initialData }: MedicamentoF
           toast.error(data.message || 'Erro ao atualizar medicamento.');
         }
       } else {
-        // Cadastro
   response = await fetch('http://localhost:4000/medicamentos', {
           method: 'POST',
           headers: {
@@ -103,7 +104,7 @@ export function MedicamentoForm({ onSubmit, onClose, initialData }: MedicamentoF
     <form onSubmit={handleSubmit} className="flex flex-col gap-6 pt-4">
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         <div className="md:col-span-2">
-          <Label htmlFor="nome_medicamento">Nome do Medicamento</Label>
+          <Label htmlFor="nome_medicamento" className="mb-1">Nome do Medicamento</Label>
           <Input
             id="nome_medicamento"
             value={formData.nome_medicamento}
