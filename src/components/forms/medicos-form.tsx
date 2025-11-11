@@ -56,12 +56,11 @@ export function MedicosForm({ onSubmit, onClose, initialData }: MedicosFormProps
     }
     try {
       let response, data;
-      const payload = {
+    const payload = {
   nome_completo: formData.nome_completo,
   crm: formData.crm,
   situacao: Boolean(situacao),
-      };
-      console.log('Enviando para backend:', payload);
+    };
       if (isEditing) {
         // Edição
         response = await fetch(`http://localhost:4000/medicos/${formData.id_medico}`, {

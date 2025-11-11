@@ -17,12 +17,13 @@ type FilterOption = { value: string; label: string };
 
 type FilterToolbarProps = {
   onSearchChange: (value: string) => void;
-  onFilterChange: (value: string) => void;
-  filterValue: string;
+  onFilterChange?: (value: string) => void;
+  filterValue?: string;
   onAddClick?: () => void; // optional now
   showAddButton?: boolean; // control visibility
   addButtonLabel?: string; // customizable label (default Adicionar Morador)
   filterOptions?: FilterOption[]; // new prop
+  showFilterSelect?: boolean; // whether to show the per-field select
 };
 
 export function FilterToolbar({
@@ -33,6 +34,7 @@ export function FilterToolbar({
   showAddButton = true,
   addButtonLabel = "Adicionar Morador",
   filterOptions,
+  showFilterSelect = true,
 }: FilterToolbarProps) {
   const options = filterOptions ?? [
     { value: "id", label: "ID Morador" },
@@ -51,18 +53,20 @@ export function FilterToolbar({
         />
       </div>
 
-      <Select onValueChange={onFilterChange} value={filterValue}>
-        <SelectTrigger className="w-full md:w-[180px]">
-          <SelectValue placeholder="Filtrar por..." />
-        </SelectTrigger>
-        <SelectContent className="bg-white">
-          {options.map((o) => (
-            <SelectItem key={o.value} value={o.value}>
-              {o.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      {showFilterSelect && (
+        <Select onValueChange={onFilterChange} value={filterValue}>
+          <SelectTrigger className="w-full md:w-[180px]">
+            <SelectValue placeholder="Filtrar por..." />
+          </SelectTrigger>
+          <SelectContent className="bg-white">
+            {options.map((o) => (
+              <SelectItem key={o.value} value={o.value}>
+                {o.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      )}
 
       {showAddButton && (
         <Button

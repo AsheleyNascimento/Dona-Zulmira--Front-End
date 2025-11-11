@@ -140,6 +140,13 @@ export default function ListaMoradoresPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Diagnostic logs removed
+
+  // When user types, show results from first page immediately
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
+
   if (!verificado) return <div className="min-h-screen bg-white" />;
 
   if (acessoNegado) {
@@ -213,12 +220,43 @@ const filterMap: Record<string, keyof Morador> = {
   situacao: "situacao",
 };
 
-const filteredData = moradores.filter((item) => {
-  const searchValue = searchTerm.toLowerCase();
-  const field = filterMap[filterBy];
-  const itemValue = (item[field] || "").toString().toLowerCase();
-  return itemValue.includes(searchValue);
-});
+const itemMatchesSearchMorador = (item: Record<string, unknown>, rawSearch: string) => {
+  const sv = String(rawSearch ?? "").toLowerCase().trim();
+  if (!sv) return true;
+
+  const normalizeBool = (v: unknown): boolean | null => {
+    if (typeof v === "boolean") return v;
+    if (typeof v === "number") return v === 1 ? true : v === 0 ? false : null;
+    if (typeof v === "string") {
+      const s = v.toLowerCase().trim();
+      if (s === "true" || s === "1" || s === "ativo" || s === "sim") return true;
+      if (s === "false" || s === "0" || s === "inativo" || s === "nao" || s === "não") return false;
+      return null;
+    }
+    return null;
+  };
+
+  // Support partial typing: prefixes like 'inat' -> 'inativo', 'ativ' -> 'ativo'
+  const svNorm = sv;
+  if (svNorm === "sim" || svNorm === "true" || svNorm === "1" || "ativo".startsWith(svNorm)) {
+    const desired = true;
+    return Object.values(item).some((v) => {
+      const b = normalizeBool(v);
+      return b !== null && b === desired;
+    });
+  }
+  if (svNorm === "nao" || svNorm === "não" || svNorm === "false" || svNorm === "0" || "inativo".startsWith(svNorm)) {
+    const desired = false;
+    return Object.values(item).some((v) => {
+      const b = normalizeBool(v);
+      return b !== null && b === desired;
+    });
+  }
+
+  return Object.values(item).some((v) => String(v ?? "").toLowerCase().includes(svNorm));
+};
+
+const filteredData = moradores.filter((item) => itemMatchesSearchMorador(item as Record<string, unknown>, searchTerm));
 
 
   const totalPages = Math.ceil(filteredData.length / ITEMS_PER_PAGE);
@@ -253,7 +291,7 @@ return (
       <FilterToolbar
         onSearchChange={setSearchTerm}
         onFilterChange={setFilterBy}
-        onAddClick={() => setIsDialogOpen(true)}
+        onAddClick={() => { setMoradorEditando(null); setIsDialogOpen(true); }}
         filterValue={filterBy}
         // className="mb-6"
       />

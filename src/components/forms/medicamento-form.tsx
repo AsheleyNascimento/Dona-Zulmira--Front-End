@@ -59,7 +59,6 @@ export function MedicamentoForm({ onSubmit, onClose, initialData }: MedicamentoF
         nome_medicamento: formData.nome_medicamento,
         situacao: Boolean(situacao),
       };
-      console.log('Enviando para backend:', payload);
       
       if (isEditing) {
         // Edição

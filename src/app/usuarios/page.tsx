@@ -112,6 +112,13 @@ export default function ListaMoradoresPage() {
       });
   }, [router]);
 
+  // Diagnostic logs removed
+
+  // When user types, show results from first page immediately
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
+
   // Proteção de rota: só Administrador pode acessar
 
   useEffect(() => {
@@ -228,12 +235,7 @@ export default function ListaMoradoresPage() {
     email: "email",
     situacao: "situacao",
   };
-  const filteredData = usuarios.filter((item) => {
-    const searchValue = searchTerm.toLowerCase();
-    const key = (filterMap[filterBy] ?? "nome_usuario") as keyof Usuario;
-    const itemValue = String(item[key] ?? "").toLowerCase();
-    return itemValue.includes(searchValue);
-  });
+  const filteredData = usuarios.filter((item) => itemMatchesSearch(item as Record<string, unknown>, searchTerm));
 
   const totalPages = Math.ceil(filteredData.length / ITEMS_PER_PAGE);
   const paginatedData = filteredData.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
@@ -263,7 +265,7 @@ export default function ListaMoradoresPage() {
         <FilterToolbarUsuario
           onSearchChange={setSearchTerm}
           onFilterChange={setFilterBy}
-          onAddClick={() => setIsDialogOpen(true)}
+          onAddClick={() => { setUsuarioEditando(null); setIsDialogOpen(true); }}
           filterValue={filterBy}
         />
          <h2 className="text-xl font-bold text-[#002c6c] mb-4">
@@ -279,6 +281,7 @@ export default function ListaMoradoresPage() {
                 <TableHead  className="text-[#002c6c] font-semibold">Nome de Usuário</TableHead>
                 <TableHead  className="text-[#002c6c] font-semibold">CPF</TableHead>
                 <TableHead  className="text-[#002c6c] font-semibold">Email</TableHead>
+                <TableHead  className="text-[#002c6c] font-semibold">Função</TableHead>
                 <TableHead  className="text-[#002c6c] font-semibold">Situação</TableHead>
               </TableRow>
             </TableHeader>
@@ -294,8 +297,9 @@ export default function ListaMoradoresPage() {
                 >
                   <TableCell className="text-gray-700">{item.id_usuario}</TableCell>
                   <TableCell className="text-gray-700 font-medium">{item.nome_usuario}</TableCell>
-                  <TableCell className="text-gray-700">{item.cpf}</TableCell>
+                  <TableCell className="text-gray-700">{formatCpf(item.cpf)}</TableCell>
                   <TableCell className="text-gray-700">{item.email}</TableCell>
+                  <TableCell className="text-gray-700">{(item as any).funcao ?? ''}</TableCell>
                   <TableCell className="text-gray-700">{item.situacao ? "Ativo" : "Inativo"}</TableCell>
                 </TableRow>
               ))}
@@ -382,3 +386,51 @@ export default function ListaMoradoresPage() {
     </div>
   );
 }
+
+// Helper to format CPF for display as 000.000.000-00
+const formatCpf = (value?: string) => {
+  if (!value) return "";
+  const v = String(value).replace(/\D/g, "").slice(0, 11);
+  if (!v) return "";
+  if (v.length <= 3) return v;
+  if (v.length <= 6) return v.replace(/(\d{3})(\d{1,3})/, "$1.$2");
+  if (v.length <= 9) return v.replace(/(\d{3})(\d{3})(\d{1,3})/, "$1.$2.$3");
+  return v.replace(/(\d{3})(\d{3})(\d{3})(\d{1,2})/, "$1.$2.$3-$4");
+};
+
+// Helper que verifica se um item bate com o termo de busca, tratando booleanos (situacao)
+const itemMatchesSearch = (item: Record<string, unknown>, rawSearch: string) => {
+  const sv = String(rawSearch ?? "").toLowerCase().trim();
+  if (!sv) return true;
+
+  const normalizeBool = (v: unknown): boolean | null => {
+    if (typeof v === "boolean") return v;
+    if (typeof v === "number") return v === 1 ? true : v === 0 ? false : null;
+    if (typeof v === "string") {
+      const s = v.toLowerCase().trim();
+      if (s === "true" || s === "1" || s === "ativo" || s === "sim") return true;
+      if (s === "false" || s === "0" || s === "inativo" || s === "nao" || s === "não") return false;
+      return null;
+    }
+    return null;
+  };
+
+  // Support partial typing: treat prefixes like 'inat' -> 'inativo', 'ativ' -> 'ativo'
+  const svNorm = sv;
+  if (svNorm === "sim" || svNorm === "true" || svNorm === "1" || "ativo".startsWith(svNorm)) {
+    const desired = true;
+    return Object.values(item).some((v) => {
+      const b = normalizeBool(v);
+      return b !== null && b === desired;
+    });
+  }
+  if (svNorm === "nao" || svNorm === "não" || svNorm === "false" || svNorm === "0" || "inativo".startsWith(svNorm)) {
+    const desired = false;
+    return Object.values(item).some((v) => {
+      const b = normalizeBool(v);
+      return b !== null && b === desired;
+    });
+  }
+
+  return Object.values(item).some((v) => String(v ?? "").toLowerCase().includes(svNorm));
+};

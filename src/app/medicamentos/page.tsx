@@ -93,6 +93,13 @@ export default function ListaMoradoresPage() {
       });
   }, [router]);
 
+  // Diagnostic logs removed
+
+  // When user types, show results from first page immediately
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
+
   // Proteção de rota: só Administrador pode acessar
 
   useEffect(() => {
@@ -205,12 +212,42 @@ export default function ListaMoradoresPage() {
     nome_medicamento: "nome_medicamento",
     situacao: "situacao",
   };
-  const filteredData = medicamentos.filter((item) => {
-    const searchValue = searchTerm.toLowerCase();
-    const key = (filterMap[filterBy] ?? "nome_medicamento") as keyof Medicamento;
-    const itemValue = String(item[key] ?? "").toLowerCase();
-    return itemValue.includes(searchValue);
-  });
+  const itemMatchesSearchMedicamento = (item: Record<string, unknown>, rawSearch: string) => {
+    const sv = String(rawSearch ?? "").toLowerCase().trim();
+    if (!sv) return true;
+
+    const normalizeBool = (v: unknown): boolean | null => {
+      if (typeof v === "boolean") return v;
+      if (typeof v === "number") return v === 1 ? true : v === 0 ? false : null;
+      if (typeof v === "string") {
+        const s = v.toLowerCase().trim();
+        if (s === "true" || s === "1" || s === "ativo" || s === "sim") return true;
+        if (s === "false" || s === "0" || s === "inativo" || s === "nao" || s === "não") return false;
+        return null;
+      }
+      return null;
+    };
+
+    const svNorm = sv;
+    if (svNorm === "sim" || svNorm === "true" || svNorm === "1" || "ativo".startsWith(svNorm)) {
+      const desired = true;
+      return Object.values(item).some((v) => {
+        const b = normalizeBool(v);
+        return b !== null && b === desired;
+      });
+    }
+    if (svNorm === "nao" || svNorm === "não" || svNorm === "false" || svNorm === "0" || "inativo".startsWith(svNorm)) {
+      const desired = false;
+      return Object.values(item).some((v) => {
+        const b = normalizeBool(v);
+        return b !== null && b === desired;
+      });
+    }
+
+    return Object.values(item).some((v) => String(v ?? "").toLowerCase().includes(svNorm));
+  };
+
+  const filteredData = medicamentos.filter((item) => itemMatchesSearchMedicamento(item as Record<string, unknown>, searchTerm));
 
   const totalPages = Math.ceil(filteredData.length / ITEMS_PER_PAGE);
   const paginatedData = filteredData.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
@@ -236,7 +273,11 @@ export default function ListaMoradoresPage() {
         <FilterToolbarMedicamentos
           onSearchChange={setSearchTerm}
           onFilterChange={setFilterBy}
-          onAddClick={() => setIsDialogOpen(true)}
+          onAddClick={() => {
+            // Clear edit state so "Adicionar" always opens create mode
+            setMedicamentoEditando(null);
+            setIsDialogOpen(true);
+          }}
           filterValue={filterBy}
         />
          <h2 className="text-xl font-bold text-[#002c6c] mb-4">

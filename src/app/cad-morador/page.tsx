@@ -27,7 +27,6 @@ export default function CadastroMoradorPage() {
 
   // Salva os dados (exemplo simples com alert)
   const handleSave = () => {
-    console.log("Dados salvos:", formData, "Situação:", ativo);
     alert("Morador salvo com sucesso!");
     router.push("/lista-moradores"); // Redireciona para a lista após salvar
   };

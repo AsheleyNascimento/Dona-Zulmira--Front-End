@@ -37,18 +37,7 @@ export function FilterToolbarUsuario({
         />
       </div>
 
-      <Select onValueChange={onFilterChange} value={filterValue}>
-        <SelectTrigger className="w-full md:w-[180px]">
-          <SelectValue placeholder="Filtrar por..." />
-        </SelectTrigger>
-        <SelectContent className="bg-white">
-          <SelectItem value="id_usuario">ID Usuário</SelectItem>
-          <SelectItem value="nome_usuario">Nome de Usuário</SelectItem>
-          <SelectItem value="cpf">CPF</SelectItem>
-          <SelectItem value="email">Email</SelectItem>
-          <SelectItem value="situacao">Situação</SelectItem>
-        </SelectContent>
-      </Select>
+      {/* Removed per-field Select — search will be global across all fields */}
 
       <Button onClick={onAddClick} className="flex items-center gap-2 bg-[#002c6c] text-white hover:bg-[#002c6c]/90 cursor-pointer">
         <PlusCircle className="h-5 w-5 " />

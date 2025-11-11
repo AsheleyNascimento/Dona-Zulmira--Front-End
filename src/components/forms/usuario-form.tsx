@@ -55,17 +55,37 @@ export function UsuarioForm({
 }: UsuarioFormProps) {
   const isEditing = !!initialData;
 
+  // Helper to format CPF as 000.000.000-00 for display
+  const formatCpf = (value: string) => {
+    const v = value.replace(/\D/g, "").slice(0, 11);
+    if (!v) return "";
+    if (v.length <= 3) return v;
+    if (v.length <= 6) return v.replace(/(\d{3})(\d{1,3})/, "$1.$2");
+    if (v.length <= 9) return v.replace(/(\d{3})(\d{3})(\d{1,3})/, "$1.$2.$3");
+    return v.replace(/(\d{3})(\d{3})(\d{3})(\d{1,2})/, "$1.$2.$3-$4");
+  };
+
+  // Helper to remove any non-digit characters
+  const unformatCpf = (value: string) => value.replace(/\D/g, "");
+
+  // If initial data has an unmasked cpf (11 digits), show it masked
+  const initialMaskedCpf = initialData?.cpf
+    ? formatCpf(String(initialData.cpf))
+    : "";
+
   const {
     register,
     handleSubmit,
     formState: { errors },
+    setValue,
+    watch,
   } = useForm<UsuarioFormData>({
     // Escolhe o schema correto dependendo se está editando ou criando
     resolver: zodResolver(isEditing ? updateUsuarioSchema : usuarioSchema),
     defaultValues: {
       nome_usuario: initialData?.nome_usuario || "",
       nome_completo: initialData?.nome_completo || "",
-      cpf: initialData?.cpf || "",
+      cpf: initialMaskedCpf,
       senha: "", // Senha sempre começa vazia
       email: initialData?.email || "",
       funcao: initialData?.funcao,
@@ -74,7 +94,13 @@ export function UsuarioForm({
   });
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
+    <form
+      onSubmit={handleSubmit((data) => {
+        const cleaned = { ...data, cpf: unformatCpf(String(data.cpf)) };
+        onSubmit(cleaned as UsuarioFormData);
+      })}
+      className="flex flex-col gap-4"
+    >
       <input
         {...register("nome_usuario")}
         placeholder="Nome de usuário"
@@ -101,6 +127,18 @@ export function UsuarioForm({
         {...register("cpf")}
         placeholder="CPF"
         className="border p-2 rounded"
+        // keep the input controlled so the mask appears correctly while typing
+        value={watch("cpf") ?? ""}
+        onChange={(e) => {
+          const digits = e.target.value.replace(/\D/g, "");
+          const masked = formatCpf(digits);
+          setValue("cpf", masked, { shouldValidate: true });
+        }}
+        onBlur={(e) => {
+          // ensure formatting on blur
+          const digits = e.target.value.replace(/\D/g, "");
+          setValue("cpf", formatCpf(digits), { shouldValidate: true });
+        }}
       />
       {errors.cpf && (
         <p className="text-red-500 text-sm -mt-2">{errors.cpf.message}</p>

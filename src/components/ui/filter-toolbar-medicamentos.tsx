@@ -36,17 +36,7 @@ export function FilterToolbarMedicamentos({
           onChange={(e) => onSearchChange(e.target.value)}
         />
       </div>
-      <Select onValueChange={onFilterChange} value={filterValue}>
-        <SelectTrigger className="w-full md:w-[180px]">
-          <SelectValue placeholder="Filtrar por..." />
-        </SelectTrigger>
-        <SelectContent className="bg-white">
-          <SelectItem value="id_medicamento">ID Medicamento</SelectItem>
-          <SelectItem value="nome">Nome</SelectItem>
-          <SelectItem value="tipo">Tipo</SelectItem>
-          <SelectItem value="situacao">Situação</SelectItem>
-        </SelectContent>
-      </Select>
+      {/* Removed per-field Select — search will be global across all fields */}
       <Button onClick={onAddClick} className="flex items-center gap-2 bg-[#002c6c] text-white hover:bg-[#002c6c]/90 cursor-pointer">
         <PlusCircle className="h-5 w-5 " />
         Adicionar Medicamento

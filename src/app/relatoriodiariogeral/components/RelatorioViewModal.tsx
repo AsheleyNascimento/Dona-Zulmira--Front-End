@@ -22,15 +22,9 @@ export function RelatorioViewModal({ relatorio, open, onOpenChange }: RelatorioV
       setLoading(true);
       setErro('');
       setDetalhe(null);
-      // Logging simples para diagnóstico em ambiente de desenvolvimento
-      if (process.env.NODE_ENV !== 'production') {
-        console.debug('[RelatorioViewModal] Fetch detalhe', relatorio.id_relatorio_diario_geral);
-      }
+      // Logging removed
       getRelatorioDetalhe(relatorio.id_relatorio_diario_geral)
         .then((d) => {
-          if (process.env.NODE_ENV !== 'production') {
-            console.debug('[RelatorioViewModal] Detalhe recebido', d);
-          }
             setDetalhe(d);
         })
         .catch((e) => {

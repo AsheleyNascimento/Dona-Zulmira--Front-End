@@ -25,9 +25,25 @@ interface MoradorFormProps {
 
 export function MoradorForm({ onSubmit, onClose, initialData, saving }: MoradorFormProps) {
   const [ativo, setAtivo] = useState(initialData?.ativo ?? true);
+  // Helpers to format/unformat CPF for display vs submission
+  const formatCpf = (value?: string) => {
+    if (!value) return "";
+    const v = String(value).replace(/\D/g, "").slice(0, 11);
+    if (!v) return "";
+    if (v.length <= 3) return v;
+    if (v.length <= 6) return v.replace(/(\d{3})(\d{1,3})/, "$1.$2");
+    if (v.length <= 9) return v.replace(/(\d{3})(\d{3})(\d{1,3})/, "$1.$2.$3");
+    return v.replace(/(\d{3})(\d{3})(\d{3})(\d{1,2})/, "$1.$2.$3-$4");
+  };
+
+  const unformatCpf = (value?: string) => {
+    if (!value) return "";
+    return String(value).replace(/\D/g, "");
+  };
+
   const [formData, setFormData] = useState({
     nome: initialData?.nome ?? "",
-    cpf: initialData?.cpf ?? "",
+    cpf: formatCpf(initialData?.cpf ?? ""),
     rg: initialData?.rg ?? "",
   });
 
@@ -74,7 +90,8 @@ export function MoradorForm({ onSubmit, onClose, initialData, saving }: MoradorF
       alert("O nome é obrigatório.");
       return;
     }
-  onSubmit({ ...formData, ativo });
+  // Envia o CPF sem máscara (apenas dígitos)
+  onSubmit({ ...formData, cpf: unformatCpf(formData.cpf), ativo });
   };
 
   return (
