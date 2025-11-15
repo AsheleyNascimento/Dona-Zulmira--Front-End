@@ -8,6 +8,7 @@ import { LogoutButton } from "@/components/ui/logout-button";
 import { useState, useEffect } from "react";
 import toast from "react-hot-toast";
 import { Card } from "@/components/ui/card";
+import { API_BASE } from '@/lib/api';
 import {
   Table,
   TableBody,
@@ -120,7 +121,7 @@ export default function ListaMoradoresPage() {
     }
 
     try {
-      const res = await fetch("http://localhost:4000/morador", {
+      const res = await fetch(`${API_BASE}/morador`, {
         headers: {
           Authorization: `Bearer ${accessToken}`,
           "Content-Type": "application/json",
@@ -174,10 +175,10 @@ export default function ListaMoradoresPage() {
         situacao: !!formData.ativo,
       };
 
-      let url = "http://localhost:4000/morador";
+      let url = `${API_BASE}/morador`;
       let method: "POST" | "PATCH" = "POST";
       if (moradorEditando && moradorEditando.id_morador) {
-        url = `http://localhost:4000/morador/${moradorEditando.id_morador}`;
+        url = `${API_BASE}/morador/${moradorEditando.id_morador}`;
         method = "PATCH";
         // Na edição, não enviar CPF se o backend proibir alterar; mantenha apenas se existir
         // Remova a linha abaixo para não enviar cpf em PATCH, se necessário:

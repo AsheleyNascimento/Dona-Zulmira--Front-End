@@ -7,6 +7,7 @@ import toast from "react-hot-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { API_BASE } from '@/lib/api';
 import {
   Select,
   SelectContent,
@@ -62,7 +63,7 @@ export function MedicamentoForm({ onSubmit, onClose, initialData }: MedicamentoF
       
       if (isEditing) {
         // Edição
-        response = await fetch(`http://localhost:4000/medicamento/${initialData?.id_medicamento}`, {
+        response = await fetch(`${API_BASE}/medicamento/${initialData?.id_medicamento}`, {
           method: 'PATCH',
           headers: {
             'Authorization': `Bearer ${accessToken}`,
@@ -77,7 +78,7 @@ export function MedicamentoForm({ onSubmit, onClose, initialData }: MedicamentoF
           toast.error(data.message || 'Erro ao atualizar medicamento.');
         }
       } else {
-  response = await fetch('http://localhost:4000/medicamentos', {
+  response = await fetch(`${API_BASE}/medicamentos`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${accessToken}`,

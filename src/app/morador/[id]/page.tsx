@@ -14,6 +14,7 @@ import { PrescricaoItemEditModal } from './components/PrescricaoItemEditModal';
 import { useEvolucoesIndividuais } from './hooks/useEvolucoesIndividuais';
 import { usePrescricoes } from './hooks/usePrescricoes';
 import HeaderBrand from '@/components/HeaderBrand';
+import { API_BASE } from '@/lib/api';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { LogoutButton } from '@/components/ui/logout-button';
@@ -107,7 +108,7 @@ export default function PerfilMoradorPage() {
     // armazena a função do usuário para controle de UI
     setUserRole(funcao);
 
-    fetch(`http://localhost:4000/morador/${id}`, {
+    fetch(`${API_BASE}/morador/${id}`, {
       headers: {
         Authorization: `Bearer ${accessToken}`,
         'Content-Type': 'application/json',

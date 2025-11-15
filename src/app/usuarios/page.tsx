@@ -18,6 +18,7 @@ import { usePathname } from "next/navigation";
 import { FilterToolbarUsuario } from "@/components/ui/filter-toolbar-usuario";
 import { LogoutButton } from "@/components/ui/logout-button";
 import Image from "next/image";
+import { API_BASE } from '@/lib/api';
 //
 
 export interface Usuario {
@@ -95,7 +96,7 @@ export default function ListaMoradoresPage() {
       return;
     }
     // Buscar usuários do backend
-    fetch('http://localhost:4000/usuario', {
+    fetch(`${API_BASE}/usuario`, {
       headers: {
         'Authorization': `Bearer ${accessToken}`,
         'Content-Type': 'application/json',
@@ -178,7 +179,7 @@ export default function ListaMoradoresPage() {
           if (formData.senha) {
             body.senha = formData.senha;
           }
-          response = await fetch(`http://localhost:4000/usuario/${usuarioEditando.id_usuario}`, {
+          response = await fetch(`${API_BASE}/usuario/${usuarioEditando.id_usuario}`, {
             method: 'PATCH',
             headers: {
               'Authorization': `Bearer ${accessToken}`,
@@ -196,7 +197,7 @@ export default function ListaMoradoresPage() {
           }
         } else {
           // Cadastro
-          response = await fetch('http://localhost:4000/usuario', {
+          response = await fetch(`${API_BASE}/usuario`, {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${accessToken}`,

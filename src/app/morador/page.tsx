@@ -10,6 +10,7 @@ import { Search, Users, LineChart } from 'lucide-react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { LogoutButton } from '@/components/ui/logout-button';
+import { API_BASE } from '@/lib/api';
 
 interface Morador {
   id_morador: number;
@@ -41,7 +42,7 @@ export default function MoradorListaPage() {
     }
 
   // <-- LISTAGEM: fetch para o backend GET /morador (popula estado `moradores`)
-  fetch('http://localhost:4000/morador', {
+  fetch(`${API_BASE}/morador`, {
       headers: {
         Authorization: `Bearer ${accessToken}`,
         'Content-Type': 'application/json',

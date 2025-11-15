@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Image from 'next/image';
+import { API_BASE } from '@/lib/api';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Users, LineChart, ArrowLeft } from 'lucide-react';
 
@@ -42,7 +43,7 @@ export default function RelatorioDiarioGeralDetalhePage() {
     setCarregando(true);
     setErro('');
     try {
-      const res = await fetch(`http://localhost:4000/relatorio-geral/${id}`, { headers: { Authorization: `Bearer ${token}` } });
+      const res = await fetch(`${API_BASE}/relatorio-geral/${id}`, { headers: { Authorization: `Bearer ${token}` } });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       const obj = (data?.data ?? data) as RelatorioDetalhe;

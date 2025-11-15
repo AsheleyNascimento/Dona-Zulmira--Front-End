@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { FilterToolbarMedicamentos } from "@/components/ui/filter-toolbar-medicamentos";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { MedicamentoForm } from "@/components/forms/medicamento-form";
+import { API_BASE } from '@/lib/api';
 import { ChevronLeft, ChevronRight, Users, UserCog, Home, Stethoscope, Pill } from "lucide-react";
 import { usePathname } from "next/navigation";
 import Image from "next/image";
@@ -76,7 +77,7 @@ export default function ListaMoradoresPage() {
       return;
     }
     // Buscar medicamentos do backend
-  fetch('http://localhost:4000/medicamentos', {
+  fetch(`${API_BASE}/medicamentos`, {
       headers: {
         'Authorization': `Bearer ${accessToken}`,
         'Content-Type': 'application/json',
@@ -132,7 +133,7 @@ export default function ListaMoradoresPage() {
       const accessToken = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
       if (!accessToken) return;
       try {
-        const res = await fetch('http://localhost:4000/medicamentos', {
+        const res = await fetch(`${API_BASE}/medicamentos`, {
           headers: {
             'Authorization': `Bearer ${accessToken}`,
             'Content-Type': 'application/json',
@@ -164,7 +165,7 @@ export default function ListaMoradoresPage() {
             alert('ID do medicamento não encontrado.');
             return;
           }
-          response = await fetch(`http://localhost:4000/medicamentos/${medicamentoEditando.id_medicamento}`, {
+          response = await fetch(`${API_BASE}/medicamentos/${medicamentoEditando.id_medicamento}`, {
             method: 'PATCH',
             headers: {
               'Authorization': `Bearer ${accessToken}`,
@@ -180,7 +181,7 @@ export default function ListaMoradoresPage() {
           }
         } else {
           // Cadastro
-          response = await fetch('http://localhost:4000/medicamentos', {
+          response = await fetch(`${API_BASE}/medicamentos`, {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${accessToken}`,

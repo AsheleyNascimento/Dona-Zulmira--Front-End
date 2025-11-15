@@ -15,6 +15,7 @@ import { MedicosForm } from "@/components/forms/medicos-form";
 import { ChevronLeft, ChevronRight, Users, UserCog, Home, Stethoscope, Pill } from "lucide-react";
 import { usePathname } from "next/navigation";
 import Image from "next/image";
+import { API_BASE } from '@/lib/api';
 //
 
 export interface Medico {
@@ -77,7 +78,7 @@ export default function ListaMoradoresPage() {
       return;
     }
     // Buscar médicos do backend
-    fetch('http://localhost:4000/medicos', {
+    fetch(`${API_BASE}/medicos`, {
       headers: {
         'Authorization': `Bearer ${accessToken}`,
         'Content-Type': 'application/json',
@@ -293,7 +294,7 @@ export default function ListaMoradoresPage() {
           <MedicosForm
             onSubmit={() => {
               // Atualiza lista após cadastro/edição
-              fetch('http://localhost:4000/medicos', {
+              fetch(`${API_BASE}/medicos`, {
                 headers: {
                   'Authorization': `Bearer ${typeof window !== 'undefined' ? localStorage.getItem('accessToken') : ''}`,
                   'Content-Type': 'application/json',

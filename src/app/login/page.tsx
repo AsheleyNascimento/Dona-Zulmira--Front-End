@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import Image from 'next/image';
 import { FaUser, FaLock } from 'react-icons/fa';
 import { toast } from 'react-hot-toast';
+import { API_BASE } from '@/lib/api';
 
 interface LoginData {
   email: string;
@@ -35,7 +36,7 @@ export default function LoginPage() {
     setLoading(true);
     
     try {
-      const response = await fetch('http://localhost:4000/auth', {
+      const response = await fetch(`${API_BASE}/auth`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

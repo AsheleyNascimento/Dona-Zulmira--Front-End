@@ -10,7 +10,7 @@ import {
 } from '@/types/relatorio';
 
 // Base da API controlada por variável de ambiente com fallback local.
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000';
+export const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000';
 
 // Erro customizado para facilitar captura tipada.
 export class ApiError extends Error {
@@ -29,7 +29,7 @@ interface ApiFetchOptions extends RequestInit {
   skipJsonParse?: boolean; // para casos específicos (não usado agora)
 }
 
-async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): Promise<T> {
+export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): Promise<T> {
   const url = path.startsWith('http') ? path : `${API_BASE}${path}`;
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -275,4 +275,4 @@ export async function listMedicamentos(limit = 100) {
 }
 
 // Expor util base
-export { API_BASE, apiFetch };
+// `API_BASE` já é exportado no local onde foi declarado. Exportamos `apiFetch` diretamente acima.

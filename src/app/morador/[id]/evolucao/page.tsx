@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import HeaderBrand from '@/components/HeaderBrand';
+import { API_BASE } from '@/lib/api';
 
 export default function RegistrarEvolucaoMoradorPage() {
   const router = useRouter();
@@ -77,7 +78,7 @@ export default function RegistrarEvolucaoMoradorPage() {
     } catch {}
 
     setMoradorCarregando(true);
-    fetch(`http://localhost:4000/morador/${id}`, {
+    fetch(`${API_BASE}/morador/${id}`, {
       headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
     })
       .then((r) => r.json())
@@ -135,7 +136,7 @@ export default function RegistrarEvolucaoMoradorPage() {
     setSuccessMsg('');
     try {
       const accessToken = localStorage.getItem('accessToken');
-      const resp = await fetch('http://localhost:4000/evolucao-individual', {
+      const resp = await fetch(`${API_BASE}/evolucao-individual`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
         body: JSON.stringify({ id_morador: Number(id), observacoes: descricao.trim() }),

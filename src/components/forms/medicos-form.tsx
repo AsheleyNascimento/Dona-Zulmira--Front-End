@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 // (select imports removed – not used in this form)
+import { API_BASE } from '@/lib/api';
 
 
 export interface MedicosFormData {
@@ -63,7 +64,7 @@ export function MedicosForm({ onSubmit, onClose, initialData }: MedicosFormProps
     };
       if (isEditing) {
         // Edição
-        response = await fetch(`http://localhost:4000/medicos/${formData.id_medico}`, {
+        response = await fetch(`${API_BASE}/medicos/${formData.id_medico}`, {
           method: 'PATCH',
           headers: {
             'Authorization': `Bearer ${accessToken}`,
@@ -79,7 +80,7 @@ export function MedicosForm({ onSubmit, onClose, initialData }: MedicosFormProps
         }
       } else {
         // Cadastro
-        response = await fetch('http://localhost:4000/medicos', {
+        response = await fetch(`${API_BASE}/medicos`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${accessToken}`,

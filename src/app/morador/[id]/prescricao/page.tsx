@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import HeaderBrand from "@/components/HeaderBrand";
+import { API_BASE } from '@/lib/api';
 
 export default function PrescricaoMoradorPage() {
   const router = useRouter();
@@ -37,7 +38,7 @@ export default function PrescricaoMoradorPage() {
       if (cache) setMoradorNome(cache);
     } catch {}
     setMoradorCarregando(true);
-    fetch(`http://localhost:4000/morador/${id}`, {
+    fetch(`${API_BASE}/morador/${id}`, {
       headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
     })
       .then((r) => r.json())
