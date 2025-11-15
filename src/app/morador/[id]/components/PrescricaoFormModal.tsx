@@ -108,11 +108,11 @@ export function PrescricaoFormModal({ idMorador, onSaved, triggerLabel = 'Cadast
             </div>
             <div>
               <Label>Mês (MM)</Label>
-              <Input value={mes} maxLength={2} onChange={(e) => setMes(e.target.value)} placeholder="09" />
+              <Input className="mt-1" value={mes} maxLength={2} onChange={(e) => setMes(e.target.value)} placeholder="09" />
             </div>
             <div>
               <Label>Ano (YYYY)</Label>
-              <Input value={ano} maxLength={4} onChange={(e) => setAno(e.target.value)} placeholder="2025" />
+              <Input className="mt-1" value={ano} maxLength={4} onChange={(e) => setAno(e.target.value)} placeholder="2025" />
             </div>
           </div>
           <div className="space-y-2">

@@ -14,9 +14,7 @@ import { LogoutButton } from '@/components/ui/logout-button';
 interface Morador {
   id_morador: number;
   nome_completo: string;
-  grau_ilpi?: string | number | null;
-  mobilidade?: string | null;
-  dependencia_atividades?: string | null;
+  situacao?: boolean | null;
 }
 
 const ITEMS_PER_PAGE = 8;
@@ -33,7 +31,7 @@ export default function MoradorListaPage() {
   useEffect(() => {
     const funcao = typeof window !== 'undefined' ? localStorage.getItem('funcao') : null;
     const accessToken = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
-    if (!accessToken || funcao !== 'Cuidador') {
+    if (!accessToken || funcao !== 'Cuidador' && funcao !== 'Enfermeiro') {
       setAcessoNegado(true);
       setTimeout(() => {
         router.push('/login');
@@ -42,7 +40,8 @@ export default function MoradorListaPage() {
       return;
     }
 
-    fetch('http://localhost:4000/morador', {
+  // <-- LISTAGEM: fetch para o backend GET /morador (popula estado `moradores`)
+  fetch('http://localhost:4000/morador', {
       headers: {
         Authorization: `Bearer ${accessToken}`,
         'Content-Type': 'application/json',
@@ -62,11 +61,11 @@ export default function MoradorListaPage() {
         const mapped: Morador[] = list.map((m) => ({
           id_morador: m.id_morador,
           nome_completo: m.nome_completo,
-          grau_ilpi: m.grau_ilpi ?? null,
-          mobilidade: m.mobilidade ?? null,
-          dependencia_atividades: m.dependencia_atividades ?? m.dependencias ?? null,
+          situacao: (m as any).situacao ?? null,
         }));
-        setMoradores(mapped);
+  // debug: inspecionar dados retornados do backend (temporário)
+  try { console.log('moradores fetched:', mapped); } catch {}
+  setMoradores(mapped);
         setVerificado(true);
       })
       .catch(() => {
@@ -87,6 +86,8 @@ export default function MoradorListaPage() {
   const totalPages = Math.max(1, Math.ceil(filtrados.length / ITEMS_PER_PAGE));
   const startIdx = (currentPage - 1) * ITEMS_PER_PAGE;
   const endIdx = Math.min(startIdx + ITEMS_PER_PAGE, filtrados.length);
+  // <-- PAGINAÇÃO: fatia atual que será exibida na tabela
+  // `filtrados` -> `paginated`
   const paginated = filtrados.slice(startIdx, endIdx);
 
   if (!verificado) {
@@ -155,28 +156,27 @@ export default function MoradorListaPage() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="text-[#002c6c] font-semibold">ID</TableHead>
                 <TableHead className="text-[#002c6c] font-semibold">Nome completo</TableHead>
-                <TableHead className="text-[#002c6c] font-semibold">Grau ILPI</TableHead>
-                <TableHead className="text-[#002c6c] font-semibold">Mobilidade</TableHead>
-                <TableHead className="text-[#002c6c] font-semibold">Dependência atividades diárias</TableHead>
+                <TableHead className="text-[#002c6c] font-semibold">Situação</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
+              {/* <-- RENDER: mapeamento de `paginated` — cada linha representa um morador */}
               {paginated.map((m) => (
                 <TableRow
                   key={m.id_morador}
                   className="hover:bg-[#e9f1f9]/50 cursor-pointer"
                   onClick={() => router.push(`/morador/${m.id_morador}`)}
                 >
-                  <TableCell className="text-gray-800 font-medium">{m.nome_completo}</TableCell>
-                  <TableCell className="text-gray-700">{m.grau_ilpi ?? '-'}</TableCell>
-                  <TableCell className="text-gray-700">{m.mobilidade ?? '-'}</TableCell>
-                  <TableCell className="text-gray-700">{m.dependencia_atividades ?? '-'}</TableCell>
+                  <TableCell className="text-gray-800 font-medium">{m.id_morador}</TableCell>
+                  <TableCell className="text-gray-700">{m.nome_completo ?? '-'}</TableCell>
+                  <TableCell className="text-gray-700">{m.situacao === null || m.situacao === undefined ? '-' : m.situacao ? 'Ativo' : 'Inativo'}</TableCell>
                 </TableRow>
               ))}
               {paginated.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-gray-500">Nenhum morador encontrado.</TableCell>
+                  <TableCell colSpan={3} className="text-gray-500">Nenhum morador encontrado.</TableCell>
                 </TableRow>
               )}
             </TableBody>

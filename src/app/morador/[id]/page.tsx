@@ -32,6 +32,7 @@ export default function PerfilMoradorPage() {
   const [verificado, setVerificado] = useState(false);
   const [morador, setMorador] = useState<MoradorDetalhe | null>(null);
   const [tab, setTab] = useState<'evolucoes' | 'prescricoes'>('evolucoes');
+  const [userRole, setUserRole] = useState<string | null>(null);
   // Estados de paginação/filtros de evoluções (antes do hook)
   const [ePage, setEPage] = useState(1);
   const [eLimit, setELimit] = useState(10);
@@ -97,12 +98,14 @@ export default function PerfilMoradorPage() {
   useEffect(() => {
     const funcao = typeof window !== 'undefined' ? localStorage.getItem('funcao') : null;
     const accessToken = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
-    if (!accessToken || funcao !== 'Cuidador') {
+    if (!accessToken || (funcao !== 'Cuidador' && funcao !== 'Enfermeiro')) {
       setAcessoNegado(true);
       setTimeout(() => router.push('/login'), 2000);
       setVerificado(true);
       return;
     }
+    // armazena a função do usuário para controle de UI
+    setUserRole(funcao);
 
     fetch(`http://localhost:4000/morador/${id}`, {
       headers: {
@@ -125,11 +128,20 @@ export default function PerfilMoradorPage() {
         setVerificado(true);
       })
       .finally(() => setMoradorCarregando(false));
-
-    // Evoluções são carregadas pelo effect dedicado de paginação/filtro
-
-    // Prescrições agora via hook usePrescricoes
   }, [id, router]);
+
+  // Se a aba atual for 'prescricoes' e o usuário não tiver permissão, volta para 'evolucoes'
+  // Define aba padrão e visibilidade com base na role do usuário.
+  // - Enfermeiro: apenas 'prescricoes' visível e selecionada.
+  // - Outros (ex.: Cuidador): apenas 'evolucoes' visível e selecionada.
+  useEffect(() => {
+    if (!userRole) return; // aguarda role definida
+    if (userRole === 'Enfermeiro') {
+      if (tab !== 'prescricoes') setTab('prescricoes');
+    } else {
+      if (tab !== 'evolucoes') setTab('evolucoes');
+    }
+  }, [userRole]);
 
   // Reaplica refresh de prescrições quando mudarmos página/limit (hook já depende). Filtros são client-side.
   useEffect(() => { void refreshPrescricoes(); }, [pPage, pLimit, refreshPrescricoes]);
@@ -218,8 +230,13 @@ export default function PerfilMoradorPage() {
         <Card className="bg-white rounded-2xl p-0 shadow-sm overflow-hidden">
           <div className="border-b border-[#e5eaf1] bg-white px-4 sm:px-6">
             <div className="flex gap-2">
-              <TabButton active={tab === 'evolucoes'} onClick={() => setTab('evolucoes')}>Evoluções</TabButton>
-              <TabButton active={tab === 'prescricoes'} onClick={() => setTab('prescricoes')}>Prescrições</TabButton>
+              {/* Mostrar apenas a aba relevante para a role atual */}
+              {userRole !== 'Enfermeiro' && (
+                <TabButton active={tab === 'evolucoes'} onClick={() => setTab('evolucoes')}>Evoluções</TabButton>
+              )}
+              {userRole === 'Enfermeiro' && (
+                <TabButton active={tab === 'prescricoes'} onClick={() => setTab('prescricoes')}>Prescrições</TabButton>
+              )}
             </div>
           </div>
           <div className="p-4 sm:p-6">
@@ -412,8 +429,7 @@ export default function PerfilMoradorPage() {
                           <TableHead className="text-[#002c6c]">Data</TableHead>
                           <TableHead className="text-[#002c6c]">Hora</TableHead>
                           <TableHead className="text-[#002c6c]">Médico</TableHead>
-                          <TableHead className="text-[#002c6c]">Cuidador</TableHead>
-                          <TableHead className="text-[#002c6c] text-right">Ações</TableHead>
+                          <TableHead className="text-[#002c6c]">Profissional</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>

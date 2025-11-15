@@ -79,33 +79,8 @@ export default function PrescricaoMoradorPage() {
         }
       />
 
-      <main className="flex-1 flex flex-col p-6 sm:p-8 relative">
-        <div className="max-w-3xl bg-white rounded-2xl p-6 shadow-sm">
-          <h1 className="text-2xl font-semibold text-[#002c6c] mb-6">Prescrição médica</h1>
-          <form className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="md:col-span-1">
-              <Label htmlFor="medicamento">Medicamento</Label>
-              <Input id="medicamento" placeholder="Ex.: Dipirona 500mg" />
-            </div>
-            <div className="md:col-span-1">
-              <Label htmlFor="posologia">Posologia</Label>
-              <Input id="posologia" placeholder="Ex.: 1 comp 8/8h" />
-            </div>
-            <div className="md:col-span-2">
-              <Label htmlFor="observacoes">Observações</Label>
-              <Textarea id="observacoes" rows={4} placeholder="Observações adicionais" />
-            </div>
-            <div className="md:col-span-2 flex justify-end gap-3">
-              <Button type="button" variant="ghost" onClick={() => router.push(`/morador/${id}`)}>
-                Cancelar
-              </Button>
-              <Button type="submit">
-                Salvar
-              </Button>
-            </div>
-          </form>
-        </div>
-      </main>
+      {/* Prescrições: formulário via modal `PrescricaoFormModal`.
+          A página standalone foi removida - a UI principal usa o modal. */}
     </div>
   );
 }

@@ -16,6 +16,7 @@ export default function RegistrarEvolucaoMoradorPage() {
   const [verificado, setVerificado] = useState(false);
   const [moradorNome, setMoradorNome] = useState<string>('');
   const [moradorCarregando, setMoradorCarregando] = useState<boolean>(true);
+  const [userRole, SetUserRole] = useState<string>('');
 
   // Form state
   const [descricao, setDescricao] = useState<string>('');
@@ -27,16 +28,26 @@ export default function RegistrarEvolucaoMoradorPage() {
   const isDirtyRef = useRef(false);
   const formRef = useRef<HTMLFormElement | null>(null);
 
+
+
   useEffect(() => {
+
     const funcao = typeof window !== 'undefined' ? localStorage.getItem('funcao') : null;
     const accessToken = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
-    // Permite perfis "Cuidador" e "Enfermeiro" conforme backend
-    if (!accessToken || (funcao !== 'Cuidador' && funcao !== 'Enfermeiro')) {
+
+    if (!accessToken || funcao !== 'Cuidador') {
       setAcessoNegado(true);
       setTimeout(() => router.push('/login'), 2000);
     }
+    if(funcao){
+      SetUserRole(funcao);
+    }
     setVerificado(true);
   }, [router]);
+
+
+
+
 
   // Load morador summary and draft
   useEffect(() => {
