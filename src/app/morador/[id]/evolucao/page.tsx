@@ -17,7 +17,7 @@ export default function RegistrarEvolucaoMoradorPage() {
   const [verificado, setVerificado] = useState(false);
   const [moradorNome, setMoradorNome] = useState<string>('');
   const [moradorCarregando, setMoradorCarregando] = useState<boolean>(true);
-  const [userRole, SetUserRole] = useState<string>('');
+  // REMOVIDO: estado userRole não utilizado
 
   // Form state
   const [descricao, setDescricao] = useState<string>('');
@@ -29,10 +29,7 @@ export default function RegistrarEvolucaoMoradorPage() {
   const isDirtyRef = useRef(false);
   const formRef = useRef<HTMLFormElement | null>(null);
 
-
-
   useEffect(() => {
-
     const funcao = typeof window !== 'undefined' ? localStorage.getItem('funcao') : null;
     const accessToken = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
 
@@ -40,15 +37,9 @@ export default function RegistrarEvolucaoMoradorPage() {
       setAcessoNegado(true);
       setTimeout(() => router.push('/login'), 2000);
     }
-    if(funcao){
-      SetUserRole(funcao);
-    }
+    // REMOVIDO: atribuição de userRole não utilizada
     setVerificado(true);
   }, [router]);
-
-
-
-
 
   // Load morador summary and draft
   useEffect(() => {

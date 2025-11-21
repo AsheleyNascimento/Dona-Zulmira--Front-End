@@ -12,17 +12,15 @@ import { FilterToolbarMedicamentos } from "@/components/ui/filter-toolbar-medica
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { MedicamentoForm } from "@/components/forms/medicamento-form";
 import { API_BASE } from '@/lib/api';
-import { ChevronLeft, ChevronRight, Users, UserCog, Home, Stethoscope, Pill } from "lucide-react";
+import { ChevronLeft, ChevronRight, Users, UserCog, Stethoscope } from "lucide-react";
 import { usePathname } from "next/navigation";
 import Image from "next/image";
 import toast from 'react-hot-toast';
-//
 
 export interface Medicamento {
   id_medicamento: number;
   nome_medicamento: string;
   situacao: boolean;
-
 }
 
 const ITEMS_PER_PAGE = 10;
@@ -59,13 +57,11 @@ export default function ListaMoradoresPage() {
   const [medicamentos, setMedicamentos] = useState<Medicamento[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterBy, setFilterBy] = useState("nome_medicamento");
   const [currentPage, setCurrentPage] = useState(1);
   const [acessoNegado, setAcessoNegado] = useState(false);
   const [verificado, setVerificado] = useState(false);
 
   useEffect(() => {
-    // Proteção de rota: só Administrador pode acessar
     const funcao = typeof window !== 'undefined' ? localStorage.getItem('funcao') : null;
     const accessToken = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
     if (!accessToken || funcao !== 'Administrador') {
@@ -76,8 +72,8 @@ export default function ListaMoradoresPage() {
       setVerificado(true);
       return;
     }
-    // Buscar medicamentos do backend
-  fetch(`${API_BASE}/medicamentos`, {
+    
+    fetch(`${API_BASE}/medicamentos`, {
       headers: {
         'Authorization': `Bearer ${accessToken}`,
         'Content-Type': 'application/json',
@@ -94,29 +90,11 @@ export default function ListaMoradoresPage() {
       });
   }, [router]);
 
-  // Diagnostic logs removed
-
-  // When user types, show results from first page immediately
   useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm]);
 
-  // Proteção de rota: só Administrador pode acessar
-
-  useEffect(() => {
-    const funcao = typeof window !== 'undefined' ? localStorage.getItem('funcao') : null;
-    const accessToken = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
-    if (!accessToken || funcao !== 'Administrador') {
-      setAcessoNegado(true);
-      setTimeout(() => {
-        router.push('/login');
-      }, 2000);
-    }
-    setVerificado(true);
-  }, [router]);
-
   if (!verificado) {
-    // Renderiza uma tela em branco até verificar
     return <div className="min-h-screen bg-white" />;
   }
   if (acessoNegado) {
@@ -129,90 +107,82 @@ export default function ListaMoradoresPage() {
     );
   }
 
-    const fetchMedicamentos = async () => {
-      const accessToken = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
-      if (!accessToken) return;
-      try {
-        const res = await fetch(`${API_BASE}/medicamentos`, {
+  const fetchMedicamentos = async () => {
+    const accessToken = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
+    if (!accessToken) return;
+    try {
+      const res = await fetch(`${API_BASE}/medicamentos`, {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      const lista = await res.json();
+      setMedicamentos(Array.isArray(lista.data) ? lista.data : []);
+      setCurrentPage(1);
+    } catch {
+      setMedicamentos([]);
+    }
+  };
+
+  const handleSaveMedicamento = async (formData: { nome_medicamento: string; situacao: boolean }) => {
+    const accessToken = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
+    if (!accessToken) {
+      alert('Token de acesso não encontrado. Faça login novamente.');
+      return;
+    }
+    try {
+      let response, data;
+      if (medicamentoEditando) {
+        const body: { nome_medicamento: string; situacao: boolean } = {
+          nome_medicamento: formData.nome_medicamento,
+          situacao: formData.situacao,
+        };
+        if (!medicamentoEditando.id_medicamento) {
+          alert('ID do medicamento não encontrado.');
+          return;
+        }
+        response = await fetch(`${API_BASE}/medicamentos/${medicamentoEditando.id_medicamento}`, {
+          method: 'PATCH',
           headers: {
             'Authorization': `Bearer ${accessToken}`,
             'Content-Type': 'application/json',
           },
+          body: JSON.stringify(body),
         });
-        const lista = await res.json();
-        setMedicamentos(Array.isArray(lista.data) ? lista.data : []);
-        setCurrentPage(1);
-      } catch {
-        setMedicamentos([]);
-      }
-    };
-
-    const handleSaveMedicamento = async (formData: { nome_medicamento: string; situacao: boolean }) => {
-      const accessToken = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
-      if (!accessToken) {
-        alert('Token de acesso não encontrado. Faça login novamente.');
-        return;
-      }
-      try {
-        let response, data;
-        if (medicamentoEditando) {
-          // Edição
-          const body: { nome_medicamento: string; situacao: boolean } = {
+        data = await response.json();
+        if (response.ok) {
+          toast.success('Medicamento atualizado com sucesso!');
+        } else {
+          toast.error(data.message || 'Erro ao atualizar medicamento.');
+        }
+      } else {
+        response = await fetch(`${API_BASE}/medicamentos`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
             nome_medicamento: formData.nome_medicamento,
             situacao: formData.situacao,
-          };
-          if (!medicamentoEditando.id_medicamento) {
-            alert('ID do medicamento não encontrado.');
-            return;
-          }
-          response = await fetch(`${API_BASE}/medicamentos/${medicamentoEditando.id_medicamento}`, {
-            method: 'PATCH',
-            headers: {
-              'Authorization': `Bearer ${accessToken}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(body),
-          });
-          data = await response.json();
-          if (response.ok) {
-            toast.success('Medicamento atualizado com sucesso!');
-          } else {
-            toast.error(data.message || 'Erro ao atualizar medicamento.');
-          }
+          }),
+        });
+        data = await response.json();
+        if (response.ok && data.medicamento) {
+          toast.success('Medicamento cadastrado com sucesso!');
         } else {
-          // Cadastro
-          response = await fetch(`${API_BASE}/medicamentos`, {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${accessToken}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              nome_medicamento: formData.nome_medicamento,
-              situacao: formData.situacao,
-            }),
-          });
-          data = await response.json();
-          if (response.ok && data.medicamento) {
-            toast.success('Medicamento cadastrado com sucesso!');
-          } else {
-            toast.error(data.message || 'Erro ao cadastrar medicamento.');
-          }
+          toast.error(data.message || 'Erro ao cadastrar medicamento.');
         }
-        setIsDialogOpen(false);
-        setMedicamentoEditando(null);
-        await fetchMedicamentos();
-      } catch {
-        toast.error('Erro de conexão ao salvar medicamento.');
       }
-    };
-
-  // Mapeamento correto dos campos para filtro
-  const filterMap: Record<string, keyof Medicamento> = {
-    id_medicamento: "id_medicamento",
-    nome_medicamento: "nome_medicamento",
-    situacao: "situacao",
+      setIsDialogOpen(false);
+      setMedicamentoEditando(null);
+      await fetchMedicamentos();
+    } catch {
+      toast.error('Erro de conexão ao salvar medicamento.');
+    }
   };
+
   const itemMatchesSearchMedicamento = (item: Record<string, unknown>, rawSearch: string) => {
     const sv = String(rawSearch ?? "").toLowerCase().trim();
     if (!sv) return true;
@@ -248,7 +218,8 @@ export default function ListaMoradoresPage() {
     return Object.values(item).some((v) => String(v ?? "").toLowerCase().includes(svNorm));
   };
 
-  const filteredData = medicamentos.filter((item) => itemMatchesSearchMedicamento(item as Record<string, unknown>, searchTerm));
+  // CORRIGIDO AQUI: Adicionado 'as unknown' antes de 'as Record<string, unknown>'
+  const filteredData = medicamentos.filter((item) => itemMatchesSearchMedicamento(item as unknown as Record<string, unknown>, searchTerm));
 
   const totalPages = Math.ceil(filteredData.length / ITEMS_PER_PAGE);
   const paginatedData = filteredData.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
@@ -273,13 +244,10 @@ export default function ListaMoradoresPage() {
       <main className="relative flex-1 flex flex-col py-6 px-8">
         <FilterToolbarMedicamentos
           onSearchChange={setSearchTerm}
-          onFilterChange={setFilterBy}
           onAddClick={() => {
-            // Clear edit state so "Adicionar" always opens create mode
             setMedicamentoEditando(null);
             setIsDialogOpen(true);
           }}
-          filterValue={filterBy}
         />
          <h2 className="text-xl font-bold text-[#002c6c] mb-4">
         Todos os medicamentos</h2>
@@ -309,7 +277,6 @@ export default function ListaMoradoresPage() {
               ))}
             </TableBody>
           </Table>
-        {/* Paginação aqui... */}
          <div className="flex justify-between items-center mt-6 text-sm text-gray-600">
                   <span>
                     Exibindo {(currentPage - 1) * ITEMS_PER_PAGE + 1} a{" "}
@@ -354,10 +321,8 @@ export default function ListaMoradoresPage() {
                   </div>
          </div>
         </Card>
-        {/* Logout agora movido para a barra lateral */}
       </main>
 
-      {/* Definição do Modal (Dialog) */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="sm:max-w-[500px] bg-white p-6 shadow-lg rounded-lg border">
           <DialogHeader>

@@ -1,4 +1,3 @@
-// src/app/moradores/page.tsx
 // src/app/usuarios/page.tsx
 
 "use client";
@@ -9,17 +8,14 @@ import toast from "react-hot-toast";
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-// import { FilterToolbar } from "@/components/ui/filter-toolbar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-// import { MoradorForm, MoradorFormData } from "@/components/forms/morador-form";
 import { UsuarioForm, UsuarioFormData } from "@/components/forms/usuario-form";
-import { ChevronLeft, ChevronRight, Users, UserCog, Home, Stethoscope, Pill } from "lucide-react";
+import { ChevronLeft, ChevronRight, Users, Stethoscope, Pill } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { FilterToolbarUsuario } from "@/components/ui/filter-toolbar-usuario";
 import { LogoutButton } from "@/components/ui/logout-button";
 import Image from "next/image";
 import { API_BASE } from '@/lib/api';
-//
 
 export interface Usuario {
   id_usuario: number;
@@ -31,12 +27,10 @@ export interface Usuario {
   situacao: boolean;
 }
 
-// Resposta potencial das APIs de usuário (PATCH/POST)
 interface UsuarioApiResponse {
-  usuario?: Usuario;      // objeto retornado em criação/atualização
-  message?: string;       // mensagem de erro/sucesso eventual
-  data?: Usuario[];       // usado em listagens (consistência)
-  // Permite campos extras sem recorrer a 'any'
+  usuario?: Usuario;
+  message?: string;
+  data?: Usuario[];
   [key: string]: unknown;
 }
 
@@ -58,9 +52,7 @@ function SidebarNav() {
           key={item.label}
           variant="ghost"
            className={`justify-start gap-3 px-3 cursor-pointer hover:bg-[#e9f1f9]/50 ${
-
             pathname === item.href ? "bg-[#e9f1f9]" : ""
-
           }`}
           onClick={() => router.push(item.href)}
         >
@@ -72,19 +64,17 @@ function SidebarNav() {
   );
 }
 
-export default function ListaMoradoresPage() {
+export default function ListaUsuariosPage() {
   const [usuarioEditando, setUsuarioEditando] = useState<Usuario | null>(null);
   const router = useRouter();
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterBy, setFilterBy] = useState("nome_usuario");
   const [currentPage, setCurrentPage] = useState(1);
   const [acessoNegado, setAcessoNegado] = useState(false);
   const [verificado, setVerificado] = useState(false);
 
   useEffect(() => {
-    // Proteção de rota: só Administrador pode acessar
     const funcao = typeof window !== 'undefined' ? localStorage.getItem('funcao') : null;
     const accessToken = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
     if (!accessToken || funcao !== 'Administrador') {
@@ -95,7 +85,7 @@ export default function ListaMoradoresPage() {
       setVerificado(true);
       return;
     }
-    // Buscar usuários do backend
+    
     fetch(`${API_BASE}/usuario`, {
       headers: {
         'Authorization': `Bearer ${accessToken}`,
@@ -113,29 +103,11 @@ export default function ListaMoradoresPage() {
       });
   }, [router]);
 
-  // Diagnostic logs removed
-
-  // When user types, show results from first page immediately
   useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm]);
 
-  // Proteção de rota: só Administrador pode acessar
-
-  useEffect(() => {
-    const funcao = typeof window !== 'undefined' ? localStorage.getItem('funcao') : null;
-    const accessToken = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
-    if (!accessToken || funcao !== 'Administrador') {
-      setAcessoNegado(true);
-      setTimeout(() => {
-        router.push('/login');
-      }, 2000);
-    }
-    setVerificado(true);
-  }, [router]);
-
   if (!verificado) {
-    // Renderiza uma tela em branco até verificar
     return <div className="min-h-screen bg-white" />;
   }
   if (acessoNegado) {
@@ -148,95 +120,85 @@ export default function ListaMoradoresPage() {
     );
   }
 
-    const handleSaveUsuario = async (formData: UsuarioFormData) => {
-      const accessToken = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
-      if (!accessToken) {
-        toast.error('Token de acesso não encontrado. Faça login novamente.');
-        return;
-      }
-      try {
-  let response: Response;
-  let data: UsuarioApiResponse;
-        if (usuarioEditando) {
-          // Edição
-          const body: {
-            nome_usuario: string;
-            nome_completo: string;
-            cpf: string;
-            email: string;
-            funcao: string;
-            situacao: boolean;
-            senha?: string;
-          } = {
+  const handleSaveUsuario = async (formData: UsuarioFormData) => {
+    const accessToken = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
+    if (!accessToken) {
+      toast.error('Token de acesso não encontrado. Faça login novamente.');
+      return;
+    }
+    try {
+      let response: Response;
+      let data: UsuarioApiResponse;
+      if (usuarioEditando) {
+        const body: {
+          nome_usuario: string;
+          nome_completo: string;
+          cpf: string;
+          email: string;
+          funcao: string;
+          situacao: boolean;
+          senha?: string;
+        } = {
+          nome_usuario: formData.nome_usuario,
+          nome_completo: formData.nome_completo,
+          cpf: formData.cpf.replace(/\D/g, ''),
+          email: formData.email,
+          funcao: formData.funcao,
+          situacao: formData.situacao,
+        };
+        
+        if (formData.senha) {
+          body.senha = formData.senha;
+        }
+        response = await fetch(`${API_BASE}/usuario/${usuarioEditando.id_usuario}`, {
+          method: 'PATCH',
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(body),
+        });
+        data = await response.json();
+        if (response.ok) {
+          const usuarioAtualizado: Usuario = data.usuario || (data as unknown as Usuario);
+          setUsuarios(prev => prev.map(u => u.id_usuario === usuarioEditando.id_usuario ? usuarioAtualizado : u));
+          toast.success('Usuário atualizado com sucesso!');
+        } else {
+          toast.error(data.message || 'Erro ao atualizar usuário.');
+        }
+      } else {
+        response = await fetch(`${API_BASE}/usuario`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
             nome_usuario: formData.nome_usuario,
             nome_completo: formData.nome_completo,
             cpf: formData.cpf.replace(/\D/g, ''),
+            senha: formData.senha,
             email: formData.email,
             funcao: formData.funcao,
             situacao: formData.situacao,
-          };
-          // Só envia senha se foi alterada
-          if (formData.senha) {
-            body.senha = formData.senha;
-          }
-          response = await fetch(`${API_BASE}/usuario/${usuarioEditando.id_usuario}`, {
-            method: 'PATCH',
-            headers: {
-              'Authorization': `Bearer ${accessToken}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(body),
-          });
-          data = await response.json();
-          if (response.ok) {
-            const usuarioAtualizado: Usuario = data.usuario || (data as unknown as Usuario);
-            setUsuarios(prev => prev.map(u => u.id_usuario === usuarioEditando.id_usuario ? usuarioAtualizado : u));
-            toast.success('Usuário atualizado com sucesso!');
-          } else {
-            toast.error(data.message || 'Erro ao atualizar usuário.');
-          }
+          }),
+        });
+        data = await response.json();
+        if (response.ok && data.usuario) {
+          setUsuarios(prev => [...prev, data.usuario!]);
+          toast.success('Usuário cadastrado com sucesso!');
         } else {
-          // Cadastro
-          response = await fetch(`${API_BASE}/usuario`, {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${accessToken}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              nome_usuario: formData.nome_usuario,
-              nome_completo: formData.nome_completo,
-              cpf: formData.cpf.replace(/\D/g, ''),
-              senha: formData.senha,
-              email: formData.email,
-              funcao: formData.funcao,
-              situacao: formData.situacao,
-            }),
-          });
-          data = await response.json();
-          if (response.ok && data.usuario) {
-            setUsuarios(prev => [...prev, data.usuario]);
-            toast.success('Usuário cadastrado com sucesso!');
-          } else {
-            toast.error(data.message || 'Erro ao cadastrar usuário.');
-          }
+          toast.error(data.message || 'Erro ao cadastrar usuário.');
         }
-        setIsDialogOpen(false);
-        setUsuarioEditando(null);
-      } catch {
-        toast.error('Erro de conexão ao salvar usuário.');
       }
-    };
-
-  // Mapeamento correto dos campos para filtro
-  const filterMap: Record<string, keyof Usuario> = {
-    id_usuario: "id_usuario",
-    nome_usuario: "nome_usuario",
-    cpf: "cpf",
-    email: "email",
-    situacao: "situacao",
+      setIsDialogOpen(false);
+      setUsuarioEditando(null);
+    } catch {
+      toast.error('Erro de conexão ao salvar usuário.');
+    }
   };
-  const filteredData = usuarios.filter((item) => itemMatchesSearch(item as Record<string, unknown>, searchTerm));
+
+  const filteredData = usuarios.filter((item) => itemMatchesSearch(item as unknown as Record<string, unknown>, searchTerm));
 
   const totalPages = Math.ceil(filteredData.length / ITEMS_PER_PAGE);
   const paginatedData = filteredData.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
@@ -246,9 +208,7 @@ export default function ListaMoradoresPage() {
     <div className="flex items-center mb-8">
       <Image src="/logo-ssvp.png" alt="Logo" className="w-[3em] mr-2" width={48} height={48} />
               <h2 className="text-[#002c6c] text-lg font-bold uppercase tracking-tight">
-
                     CASA DONA ZULMIRA
-
               </h2>       
         </div>
         <SidebarNav />
@@ -265,14 +225,10 @@ export default function ListaMoradoresPage() {
        
         <FilterToolbarUsuario
           onSearchChange={setSearchTerm}
-          onFilterChange={setFilterBy}
           onAddClick={() => { setUsuarioEditando(null); setIsDialogOpen(true); }}
-          filterValue={filterBy}
         />
          <h2 className="text-xl font-bold text-[#002c6c] mb-4">
-
         Todos os usuários
-
       </h2>
         <Card className="rounded-2xl border border-[#cfd8e3] shadow-md bg-white p-4">
           <Table>
@@ -300,13 +256,12 @@ export default function ListaMoradoresPage() {
                   <TableCell className="text-gray-700 font-medium">{item.nome_usuario}</TableCell>
                   <TableCell className="text-gray-700">{formatCpf(item.cpf)}</TableCell>
                   <TableCell className="text-gray-700">{item.email}</TableCell>
-                  <TableCell className="text-gray-700">{(item as any).funcao ?? ''}</TableCell>
+                  <TableCell className="text-gray-700">{item.funcao ?? ''}</TableCell>
                   <TableCell className="text-gray-700">{item.situacao ? "Ativo" : "Inativo"}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
-        {/* Paginação aqui... */}
          <div className="flex justify-between items-center mt-6 text-sm text-gray-600">
                   <span>
                     Exibindo {(currentPage - 1) * ITEMS_PER_PAGE + 1} a{" "}
@@ -351,12 +306,8 @@ export default function ListaMoradoresPage() {
                   </div>
                 </div>
         </Card>
-
-        {/* Logout agora movido para a barra lateral */}
-
       </main>
 
-      {/* Definição do Modal (Dialog) */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="sm:max-w-[500px] bg-white p-6 shadow-lg rounded-lg border">
           <DialogHeader>
@@ -378,7 +329,7 @@ export default function ListaMoradoresPage() {
               nome_completo: usuarioEditando.nome_completo,
               cpf: usuarioEditando.cpf,
               email: usuarioEditando.email,
-              funcao: usuarioEditando.funcao,
+              funcao: (usuarioEditando.funcao as "Administrador" | "Enfermeiro" | "Tecnico de Enfermagem" | "Cuidador" | "Medico" | "Farmaceutico"),
               situacao: usuarioEditando.situacao,
             } : undefined}
           />
@@ -388,7 +339,6 @@ export default function ListaMoradoresPage() {
   );
 }
 
-// Helper to format CPF for display as 000.000.000-00
 const formatCpf = (value?: string) => {
   if (!value) return "";
   const v = String(value).replace(/\D/g, "").slice(0, 11);
@@ -399,7 +349,6 @@ const formatCpf = (value?: string) => {
   return v.replace(/(\d{3})(\d{3})(\d{3})(\d{1,2})/, "$1.$2.$3-$4");
 };
 
-// Helper que verifica se um item bate com o termo de busca, tratando booleanos (situacao)
 const itemMatchesSearch = (item: Record<string, unknown>, rawSearch: string) => {
   const sv = String(rawSearch ?? "").toLowerCase().trim();
   if (!sv) return true;
@@ -416,7 +365,6 @@ const itemMatchesSearch = (item: Record<string, unknown>, rawSearch: string) => 
     return null;
   };
 
-  // Support partial typing: treat prefixes like 'inat' -> 'inativo', 'ativ' -> 'ativo'
   const svNorm = sv;
   if (svNorm === "sim" || svNorm === "true" || svNorm === "1" || "ativo".startsWith(svNorm)) {
     const desired = true;

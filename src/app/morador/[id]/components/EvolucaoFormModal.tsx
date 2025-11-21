@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -33,13 +33,15 @@ export function EvolucaoFormModal({ idMorador, editando, onClose, onSaved, trigg
     }
   }, [editando]);
 
-  function reset() {
+  // Envolvendo reset em useCallback
+  const reset = useCallback(() => {
     setTexto('');
     setErro('');
     setSucesso('');
-  }
+  }, []);
 
-  async function salvar() {
+  // Envolvendo salvar em useCallback para estabilizar a referência
+  const salvar = useCallback(async () => {
     setErro(''); setSucesso('');
     const val = texto.trim();
     if (val.length < 10) { setErro('Descreva a evolução com pelo menos 10 caracteres.'); return; }
@@ -59,9 +61,9 @@ export function EvolucaoFormModal({ idMorador, editando, onClose, onSaved, trigg
     } finally {
       setLoading(false);
     }
-  }
+  }, [texto, editando, idMorador, onSaved, onClose, reset]);
 
-  // Atalho Ctrl+Enter
+  // Atalho Ctrl+Enter com a dependência correta
   useEffect(() => {
     if (!open) return;
     const handler = (e: KeyboardEvent) => {
@@ -72,7 +74,7 @@ export function EvolucaoFormModal({ idMorador, editando, onClose, onSaved, trigg
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [open, texto, editando]);
+  }, [open, salvar]);
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) { reset(); onClose(); } setOpen(v); }}>

@@ -7,7 +7,7 @@ import { Card } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { FilterToolbar } from '@/components/ui/filter-toolbar';
-import { Users, LineChart, ClipboardList } from 'lucide-react';
+import { Users, ClipboardList } from 'lucide-react';
 import type { RelatorioDiarioGeral } from '@/types/relatorio';
 import { RelatorioFormModal } from './components/RelatorioFormModal';
 import { RelatorioViewModal } from './components/RelatorioViewModal';

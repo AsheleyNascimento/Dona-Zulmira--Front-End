@@ -4,6 +4,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
+import type { Resolver } from 'react-hook-form';
 
 // 1. Definimos TODAS as funções válidas que existem no seu back-end
 const funcoesValidas = [
@@ -22,9 +23,7 @@ export const usuarioSchema = z.object({
   cpf: z.string().min(14, "O CPF deve ser preenchido corretamente."),
   senha: z.string().min(6, "A senha deve ter no mínimo 6 caracteres."),
   email: z.string().email("Por favor, insira um email válido."),
-  funcao: z.enum(funcoesValidas, {
-    errorMap: () => ({ message: "Selecione uma função válida." }),
-  }),
+  funcao: z.enum(funcoesValidas),
   situacao: z.preprocess((val) => String(val) === 'true', z.boolean()),
 });
 
@@ -81,7 +80,7 @@ export function UsuarioForm({
     watch,
   } = useForm<UsuarioFormData>({
     // Escolhe o schema correto dependendo se está editando ou criando
-    resolver: zodResolver(isEditing ? updateUsuarioSchema : usuarioSchema),
+    resolver: zodResolver(isEditing ? updateUsuarioSchema : usuarioSchema) as unknown as Resolver<UsuarioFormData>,
     defaultValues: {
       nome_usuario: initialData?.nome_usuario || "",
       nome_completo: initialData?.nome_completo || "",

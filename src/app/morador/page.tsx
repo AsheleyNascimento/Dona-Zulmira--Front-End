@@ -6,7 +6,7 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, Users, LineChart } from 'lucide-react';
+import { Search, LineChart } from 'lucide-react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { LogoutButton } from '@/components/ui/logout-button';
@@ -57,12 +57,13 @@ export default function MoradorListaPage() {
           mobilidade?: string | null;
           dependencia_atividades?: string | null;
           dependencias?: string | null;
+          situacao?: boolean | null;
         };
         const list = (Array.isArray(data.data) ? data.data : []) as Array<ApiMorador>;
         const mapped: Morador[] = list.map((m) => ({
           id_morador: m.id_morador,
           nome_completo: m.nome_completo,
-          situacao: (m as any).situacao ?? null,
+          situacao: m.situacao ?? null,
         }));
   // debug: inspecionar dados retornados do backend (temporário)
   try { console.log('moradores fetched:', mapped); } catch {}

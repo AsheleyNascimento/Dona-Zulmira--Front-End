@@ -1,5 +1,4 @@
-// src/app/moradores/page.tsx
-// src/app/usuarios/page.tsx
+// src/app/medicos/page.tsx
 
 "use client";
 
@@ -12,18 +11,16 @@ import { Button } from "@/components/ui/button";
 import { FilterToolbarMedicos } from "@/components/ui/filter-toolbar-medicos";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { MedicosForm } from "@/components/forms/medicos-form";
-import { ChevronLeft, ChevronRight, Users, UserCog, Home, Stethoscope, Pill } from "lucide-react";
+import { ChevronLeft, ChevronRight, Users, UserCog, Pill } from "lucide-react";
 import { usePathname } from "next/navigation";
 import Image from "next/image";
 import { API_BASE } from '@/lib/api';
-//
 
 export interface Medico {
   id_medico: number;
   nome_completo: string;
   crm: string;
   situacao: boolean;
-
 }
 
 const ITEMS_PER_PAGE = 10;
@@ -60,13 +57,12 @@ export default function ListaMoradoresPage() {
   const [medicos, setMedicos] = useState<Medico[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterBy, setFilterBy] = useState("nome_completo");
+  // REMOVIDO: const [filterBy, setFilterBy] = useState("nome_completo");
   const [currentPage, setCurrentPage] = useState(1);
   const [acessoNegado, setAcessoNegado] = useState(false);
   const [verificado, setVerificado] = useState(false);
 
   useEffect(() => {
-    // Proteção de rota: só Administrador pode acessar
     const funcao = typeof window !== 'undefined' ? localStorage.getItem('funcao') : null;
     const accessToken = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
     if (!accessToken || funcao !== 'Administrador') {
@@ -77,7 +73,7 @@ export default function ListaMoradoresPage() {
       setVerificado(true);
       return;
     }
-    // Buscar médicos do backend
+    
     fetch(`${API_BASE}/medicos`, {
       headers: {
         'Authorization': `Bearer ${accessToken}`,
@@ -86,7 +82,6 @@ export default function ListaMoradoresPage() {
     })
       .then(res => res.json())
       .then(data => {
-        // Aceita tanto data.data quanto data direto
         if (Array.isArray(data)) {
           setMedicos(data);
         } else if (Array.isArray(data.data)) {
@@ -102,17 +97,11 @@ export default function ListaMoradoresPage() {
       });
   }, [router]);
 
-  // Diagnostic logs removed
-
-  // When user types, show results from first page immediately
   useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm]);
 
-  // Proteção de rota duplicada removida
-
   if (!verificado) {
-    // Renderiza uma tela em branco até verificar
     return <div className="min-h-screen bg-white" />;
   }
   if (acessoNegado) {
@@ -125,15 +114,6 @@ export default function ListaMoradoresPage() {
     );
   }
 
-    // handlers específicos de usuários removidos (não utilizados nesta página)
-
-  // Mapeamento correto dos campos para filtro
-  const filterMap: Record<string, keyof Medico> = {
-    id_medico: "id_medico",
-    nome_completo: "nome_completo",
-    crm: "crm",
-    situacao: "situacao",
-  };
   const itemMatchesSearchMedico = (item: Record<string, unknown>, rawSearch: string) => {
     const sv = String(rawSearch ?? "").toLowerCase().trim();
     if (!sv) return true;
@@ -169,7 +149,8 @@ export default function ListaMoradoresPage() {
     return Object.values(item).some((v) => String(v ?? "").toLowerCase().includes(svNorm));
   };
 
-  const filteredData = medicos.filter((item) => itemMatchesSearchMedico(item as Record<string, unknown>, searchTerm));
+  // CORREÇÃO AQUI: Adicionado 'as unknown' antes de converter para Record
+  const filteredData = medicos.filter((item) => itemMatchesSearchMedico(item as unknown as Record<string, unknown>, searchTerm));
 
   const totalPages = Math.ceil(filteredData.length / ITEMS_PER_PAGE);
   const paginatedData = filteredData.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
@@ -194,13 +175,10 @@ export default function ListaMoradoresPage() {
       <main className="relative flex-1 flex flex-col py-6 px-8">
         <FilterToolbarMedicos
           onSearchChange={setSearchTerm}
-          onFilterChange={setFilterBy}
           onAddClick={() => {
-            // Clear edit state so "Adicionar" always opens create mode
             setMedicoEditando(null);
             setIsDialogOpen(true);
           }}
-          filterValue={filterBy}
         />
          <h2 className="text-xl font-bold text-[#002c6c] mb-4">
         Todos os médicos
@@ -233,7 +211,6 @@ export default function ListaMoradoresPage() {
               ))}
             </TableBody>
           </Table>
-        {/* Paginação aqui... */}
        <div className="flex justify-between items-center mt-6 text-sm text-gray-600">
                  <span>
                    Exibindo {(currentPage - 1) * ITEMS_PER_PAGE + 1} a{" "}
@@ -280,7 +257,6 @@ export default function ListaMoradoresPage() {
         </Card>
       </main>
 
-      {/* Definição do Modal (Dialog) */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="sm:max-w-[500px] bg-white p-6 shadow-lg rounded-lg border">
           <DialogHeader>

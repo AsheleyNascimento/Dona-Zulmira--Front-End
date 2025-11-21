@@ -1,3 +1,5 @@
+// src/types/relatorio.ts
+
 // Tipagens compartilhadas para Relatórios e Evoluções
 // Centraliza interfaces usadas em várias partes da aplicação.
 
@@ -37,8 +39,8 @@ export interface RelatorioDiarioGeral {
   evolucoes?: RelatorioEvolucaoWrap[];
 }
 
-// Detalhe pode incluir campos adicionais (extensível)
-export interface RelatorioDetalhe extends RelatorioDiarioGeral {}
+// CORRIGIDO: Alterado de interface vazia para type alias
+export type RelatorioDetalhe = RelatorioDiarioGeral;
 
 export interface PaginacaoMeta {
   page: number;

@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useState } from "react";
 import { ChevronLeft } from "lucide-react";
+import Image from "next/image";
 
 export default function CadastroMoradorPage() {
   const router = useRouter();
@@ -43,7 +44,7 @@ export default function CadastroMoradorPage() {
       </style>
       <aside className="w-1/5 flex flex-col bg-white p-6 border-r border-[#e9f1f9]">
         <div className="flex items-center mb-8">
-          <img src="/logo-ssvp.png" alt="Logo" className="w-[3em] mr-2" />
+          <Image src="/logo-ssvp.png" alt="Logo" className="w-[3em] mr-2" width={48} height={48} />
           <h2 className="text-[#002c6c] text-[1.2em] font-bold uppercase">
             CASA DONA ZULMIRA
           </h2>

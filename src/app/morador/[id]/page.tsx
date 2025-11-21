@@ -142,7 +142,7 @@ export default function PerfilMoradorPage() {
     } else {
       if (tab !== 'evolucoes') setTab('evolucoes');
     }
-  }, [userRole]);
+  }, [userRole, tab]); // Adicionado 'tab' nas dependências
 
   // Reaplica refresh de prescrições quando mudarmos página/limit (hook já depende). Filtros são client-side.
   useEffect(() => { void refreshPrescricoes(); }, [pPage, pLimit, refreshPrescricoes]);
@@ -499,13 +499,13 @@ export default function PerfilMoradorPage() {
             )}
           </div>
         </Card>
-  {/* Botão flutuante de logout no canto inferior esquerdo */}
+        {/* Botão flutuante de logout no canto inferior esquerdo */}
         <div className="absolute bottom-6 left-6 sm:bottom-8 sm:left-8">
           <LogoutButton variant="floating" />
         </div>
       </main>
       {/* Modal de visualização em formato de ficha */}
-  <Dialog open={openView} onOpenChange={(v) => { setOpenView(v); if (!v) { setViewType(null); setViewProfNome(''); setViewTexto(''); setViewDataISO(''); } }}>
+      <Dialog open={openView} onOpenChange={(v) => { setOpenView(v); if (!v) { setViewType(null); setViewProfNome(''); setViewTexto(''); setViewDataISO(''); } }}>
         <DialogContent className="print-container sm:max-w-[760px] bg-white" aria-describedby={undefined}>
           {/* Header acessível (título invisível para screen readers exigido pelo Radix) */}
           <DialogHeader className="sr-only">
@@ -655,7 +655,7 @@ export default function PerfilMoradorPage() {
         `}
       </style>
       {/* Modal para editar item de prescrição */}
-  <PrescricaoItemEditModal
+      <PrescricaoItemEditModal
         open={openPrescEdit}
         onOpenChange={(v) => { setOpenPrescEdit(v); if (!v) { /* reset handled inside */ } }}
         itemId={editPrescItemId}
@@ -665,7 +665,7 @@ export default function PerfilMoradorPage() {
       />
 
       {/* Modal de edição de evolução (novo componente) */}
-  <EvolucaoEditModal
+      <EvolucaoEditModal
         evolucao={editEvolucao ? {
           id_evolucao_individual: editEvolucao.id,
           data_hora: editEvolucao.data,
@@ -688,7 +688,7 @@ export default function PerfilMoradorPage() {
         <Plus className="h-6 w-6" />
       </button>
       {/* Toast / Snackbar */}
-  {toastMsg && (
+      {toastMsg && (
         <div role="status" aria-live="polite" className="fixed top-4 right-4 z-50 bg-white text-[#003d99] border border-[#e5eaf1] shadow-lg rounded-md px-4 py-3">
           {toastMsg}
         </div>

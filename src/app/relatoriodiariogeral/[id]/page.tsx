@@ -48,7 +48,7 @@ export default function RelatorioDiarioGeralDetalhePage() {
       const data = await res.json();
       const obj = (data?.data ?? data) as RelatorioDetalhe;
       setRelatorio(obj);
-    } catch (e) {
+    } catch  {
       setErro('Falha ao carregar relatório.');
     } finally {
       setCarregando(false);

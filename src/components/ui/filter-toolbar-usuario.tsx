@@ -3,28 +3,18 @@
 "use client";
 
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Search, PlusCircle } from "lucide-react";
 
+// Tipagem limpa: removidos onFilterChange e filterValue
 type FilterToolbarUsuarioProps = {
   onSearchChange: (value: string) => void;
-  onFilterChange: (value: string) => void;
   onAddClick: () => void;
-  filterValue: string;
 };
 
 export function FilterToolbarUsuario({
   onSearchChange,
-  onFilterChange,
   onAddClick,
-  filterValue,
 }: FilterToolbarUsuarioProps) {
   return (
     <div className="flex flex-col md:flex-row gap-4 mb-6">
@@ -36,8 +26,6 @@ export function FilterToolbarUsuario({
           onChange={(e) => onSearchChange(e.target.value)}
         />
       </div>
-
-      {/* Removed per-field Select — search will be global across all fields */}
 
       <Button onClick={onAddClick} className="flex items-center gap-2 bg-[#002c6c] text-white hover:bg-[#002c6c]/90 cursor-pointer">
         <PlusCircle className="h-5 w-5 " />

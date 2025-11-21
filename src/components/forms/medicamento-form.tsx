@@ -7,28 +7,18 @@ import toast from "react-hot-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { API_BASE } from '@/lib/api';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-
 
 export interface MedicamentoFormData {
+  id_medicamento?: number; // <--- CAMPO ADICIONADO PARA CORRIGIR O ERRO
   nome_medicamento: string;
   situacao: boolean;
 }
-
 
 interface MedicamentoFormProps {
   onSubmit?: (data: MedicamentoFormData) => void;
   onClose: () => void;
   initialData?: Partial<MedicamentoFormData>;
 }
-
 
 export function MedicamentoForm({ onSubmit, onClose, initialData }: MedicamentoFormProps) {
   const [situacao, setSituacao] = useState(initialData?.situacao ?? true);
@@ -49,54 +39,20 @@ export function MedicamentoForm({ onSubmit, onClose, initialData }: MedicamentoF
       toast.error("O nome do medicamento é obrigatório.");
       return;
     }
-    const accessToken = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
-    if (!accessToken) {
-      toast.error('Token de acesso não encontrado. Faça login novamente.');
-      return;
-    }
-    try {
-      let response, data;
-      const payload = {
-        nome_medicamento: formData.nome_medicamento,
-        situacao: Boolean(situacao),
-      };
-      
-      if (isEditing) {
-        // Edição
-        response = await fetch(`${API_BASE}/medicamento/${initialData?.id_medicamento}`, {
-          method: 'PATCH',
-          headers: {
-            'Authorization': `Bearer ${accessToken}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(payload),
-        });
-        data = await response.json();
-        if (response.ok) {
-          toast.success('Medicamento atualizado com sucesso!');
-        } else {
-          toast.error(data.message || 'Erro ao atualizar medicamento.');
-        }
-      } else {
-  response = await fetch(`${API_BASE}/medicamentos`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${accessToken}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(payload),
-        });
-        data = await response.json();
-        if (response.ok && data.medicamento) {
-          toast.success('Medicamento cadastrado com sucesso!');
-        } else {
-          toast.error(data.message || 'Erro ao cadastrar medicamento.');
-        }
+    const payload = {
+      nome_medicamento: formData.nome_medicamento,
+      situacao: Boolean(situacao),
+      id_medicamento: initialData?.id_medicamento,
+    } as MedicamentoFormData;
+
+    // Apenas encaminha os dados para o pai. A chamada à API e as notificações
+    // devem ser realizadas pelo componente pai (`page.tsx`) para evitar duplicação.
+    if (onSubmit) {
+      try {
+        await Promise.resolve(onSubmit(payload));
+      } catch (err) {
+        // Deixa o componente pai tratar erros e notificações relacionadas à rede.
       }
-      if (onSubmit) onSubmit(payload);
-      onClose();
-    } catch (error) {
-      toast.error('Erro de conexão ao salvar medicamento.');
     }
   };
 

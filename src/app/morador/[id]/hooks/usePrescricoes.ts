@@ -19,6 +19,7 @@ export interface PrescricaoLinhaNormalizada {
   medico: string | null;
   aplicador: string | null;
   vinculado_por: string | null;
+  cuidador: string | null; // <--- CORREÇÃO: Campo adicionado
   observacoes: string; // nome_medicamento — posologia
   id_medicamento_prescricao?: number;
   id_medicamento?: number | null;
@@ -66,10 +67,8 @@ export function usePrescricoes(params: UsePrescricoesParams): UsePrescricoesResu
         const nomeMedicamento = raw.nome_medicamento || '';
         const posologia = raw.posologia || '';
         const observacoes = [nomeMedicamento, posologia].filter(Boolean).join(' — ');
-        // Derivar cuidador / enfermeiro / responsável
-        // Derivar cuidador/responsável: o backend atual expõe principalmente 'vinculado_por' (quem cadastrou o item)
-        // e 'aplicador' (quem aplicou a última dose). Mantemos os demais campos como fallback caso futuras
-        // variações de API adicionem nomes específicos.
+        
+        // Derivar cuidador/responsável
         const cuidador = raw.cuidador_nome
           || raw.enfermeiro_nome
           || raw.nome_cuidador
@@ -78,6 +77,7 @@ export function usePrescricoes(params: UsePrescricoesParams): UsePrescricoesResu
           || raw.vinculado_por // principal para responsável de cadastro
           || raw.aplicador // fallback final (quem aplicou)
           || null;
+
         return {
           id_prescricao: idPresc,
           data_iso: dataISO,
