@@ -10,7 +10,7 @@ import {
 } from '@/types/relatorio';
 
 // Base da API controlada por variável de ambiente com fallback local.
-export const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000';
+export const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://192.168.1.220:4000';
 
 // Erro customizado para facilitar captura tipada.
 export class ApiError extends Error {
