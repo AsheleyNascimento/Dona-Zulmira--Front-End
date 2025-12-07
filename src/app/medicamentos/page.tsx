@@ -12,7 +12,7 @@ import { FilterToolbarMedicamentos } from "@/components/ui/filter-toolbar-medica
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { MedicamentoForm } from "@/components/forms/medicamento-form";
 import { API_BASE } from '@/lib/api';
-import { ChevronLeft, ChevronRight, Users, UserCog, Stethoscope } from "lucide-react";
+import { ChevronLeft, ChevronRight, Users, Stethoscope, Pill } from "lucide-react";
 import { usePathname } from "next/navigation";
 import Image from "next/image";
 import toast from 'react-hot-toast';
@@ -26,20 +26,21 @@ export interface Medicamento {
 const ITEMS_PER_PAGE = 10;
 
 const navItems = [
-    { href: "/moradores", label: "Moradores", icon: <Users className="h-5 w-5" /> },
-    { href: "/usuarios", label: "Usuários", icon: <UserCog className="h-5 w-5" /> },
-    { href: "/medicos", label: "Médicos", icon: <Stethoscope className="h-5 w-5" /> },
+  { href: "/usuarios", label: "Usuarios", icon: <Users className="h-5 w-5" /> },
+  { href: "/moradores", label: "Moradores", icon: <Users className="h-5 w-5" /> },
+  { href: "/medicos", label: "Médicos", icon: <Stethoscope className="h-5 w-5" /> },
+  { href: "/medicamentos", label: "Medicamentos", icon: <Pill className="h-5 w-5" /> },
 ];
 
 function SidebarNav() {
   const router = useRouter();
   const pathname = usePathname();
   return (
-     <nav className="flex flex-col gap-2 mt-8 text-[1em] text-[#002c6c]">
+    <nav className="flex flex-col gap-2 mt-8 text-[1em] text-[#002c6c]">
       {navItems.map((item) => (
         <Button
           key={item.label}
-           variant="ghost"
+          variant="ghost"
           className={`justify-start gap-3 px-3 cursor-pointer hover:bg-[#e9f1f9]/50 ${pathname === item.href ? "bg-[#e9f1f9]" : ""}`}
           onClick={() => router.push(item.href)}
         >
@@ -72,7 +73,7 @@ export default function ListaMoradoresPage() {
       setVerificado(true);
       return;
     }
-    
+
     fetch(`${API_BASE}/medicamentos`, {
       headers: {
         'Authorization': `Bearer ${accessToken}`,
@@ -223,23 +224,23 @@ export default function ListaMoradoresPage() {
 
   const totalPages = Math.ceil(filteredData.length / ITEMS_PER_PAGE);
   const paginatedData = filteredData.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
-  
+
   const SidebarContent = () => (
-     <aside className="w-64 flex-shrink-0 flex flex-col bg-white p-6 border-r border-[#e9f1f9]">
-    <div className="flex items-center mb-8">
-      <Image src="/logo-ssvp.png" alt="Logo" className="w-[3em] mr-2" width={48} height={48} />
-       <h2 className="text-[#002c6c] text-lg font-bold uppercase tracking-tight">CASA DONA ZULMIRA</h2>
-    </div>
-        <SidebarNav />
-        <div className="mt-auto pt-6 border-t border-[#e9f1f9]">
-          <LogoutButton />
-        </div>
+    <aside className="w-64 flex-shrink-0 flex flex-col bg-white p-6 border-r border-[#e9f1f9]">
+      <div className="flex items-center mb-8">
+        <Image src="/logo-ssvp.png" alt="Logo" className="w-[3em] mr-2" width={48} height={48} />
+        <h2 className="text-[#002c6c] text-lg font-bold uppercase tracking-tight">CASA DONA ZULMIRA</h2>
+      </div>
+      <SidebarNav />
+      <div className="mt-auto pt-6 border-t border-[#e9f1f9]">
+        <LogoutButton />
+      </div>
     </aside>
   );
 
   return (
     <div className="min-h-screen flex bg-[#e9f1f9] font-poppins">
-        <SidebarContent />
+      <SidebarContent />
 
       <main className="relative flex-1 flex flex-col py-6 px-8">
         <FilterToolbarMedicamentos
@@ -249,8 +250,8 @@ export default function ListaMoradoresPage() {
             setIsDialogOpen(true);
           }}
         />
-         <h2 className="text-xl font-bold text-[#002c6c] mb-4">
-        Todos os medicamentos</h2>
+        <h2 className="text-xl font-bold text-[#002c6c] mb-4">
+          Todos os medicamentos</h2>
         <Card className="rounded-2xl border border-[#cfd8e3] shadow-md bg-white p-4">
           <Table>
             <TableHeader>
@@ -277,49 +278,48 @@ export default function ListaMoradoresPage() {
               ))}
             </TableBody>
           </Table>
-         <div className="flex justify-between items-center mt-6 text-sm text-gray-600">
-                  <span>
-                    Exibindo {(currentPage - 1) * ITEMS_PER_PAGE + 1} a{" "}
-                    {Math.min(currentPage * ITEMS_PER_PAGE, filteredData.length)} de{" "}
-                    {filteredData.length} medicamentos
-                  </span>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="w-8 h-8 rounded-full hover:bg-[#e9f1f9]/50 cursor-pointer"
-                      onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-                      disabled={currentPage === 1}
-                    >
-                      <ChevronLeft className="w-4 h-4" />
-                    </Button>
-                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                      <Button
-                        key={page}
-                        size="sm"
-                        className={`w-8 h-8 rounded-full ${
-                          currentPage === page
-                            ? "bg-[#002c6c] text-white"
-                            : "border border-[#002c6c] text-[#002c6c] hover:bg-[#e9f1f9]"
-                        }`}
-                        onClick={() => setCurrentPage(page)}
-                      >
-                        {page}
-                      </Button>
-                    ))}
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="w-8 h-8 rounded-full hover:bg-[#e9f1f9]/50 cursor-pointer"
-                      onClick={() =>
-                        setCurrentPage((prev) => Math.min(prev + 1, totalPages))
-                      }
-                      disabled={currentPage === totalPages}
-                    >
-                      <ChevronRight className="w-4 h-4" />
-                    </Button>
-                  </div>
-         </div>
+          <div className="flex justify-between items-center mt-6 text-sm text-gray-600">
+            <span>
+              Exibindo {(currentPage - 1) * ITEMS_PER_PAGE + 1} a{" "}
+              {Math.min(currentPage * ITEMS_PER_PAGE, filteredData.length)} de{" "}
+              {filteredData.length} medicamentos
+            </span>
+            <div className="flex gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-8 h-8 rounded-full hover:bg-[#e9f1f9]/50 cursor-pointer"
+                onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </Button>
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                <Button
+                  key={page}
+                  size="sm"
+                  className={`w-8 h-8 rounded-full ${currentPage === page
+                      ? "bg-[#002c6c] text-white"
+                      : "border border-[#002c6c] text-[#002c6c] hover:bg-[#e9f1f9]"
+                    }`}
+                  onClick={() => setCurrentPage(page)}
+                >
+                  {page}
+                </Button>
+              ))}
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-8 h-8 rounded-full hover:bg-[#e9f1f9]/50 cursor-pointer"
+                onClick={() =>
+                  setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+                }
+                disabled={currentPage === totalPages}
+              >
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
         </Card>
       </main>
 

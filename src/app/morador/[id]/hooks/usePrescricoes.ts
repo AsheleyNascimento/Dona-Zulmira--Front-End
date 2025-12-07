@@ -52,22 +52,26 @@ export function usePrescricoes(params: UsePrescricoesParams): UsePrescricoesResu
       const bruta: PrescricaoAnaliticoItem[] = Array.isArray(resp.data) ? resp.data : [];
       const normalizada: PrescricaoLinhaNormalizada[] = bruta.map((raw) => {
         const idPresc = raw.id_prescricao ?? Math.floor(Math.random() * 1e9);
-        // Derivar data: aplicacao_data_hora > (ano-mes-01) > agora
+        // Derivar data: raw.data_prescricao > raw.aplicacao_data_hora > (mes/ano) > agora
         let dataISO = new Date().toISOString();
-        if (raw.aplicacao_data_hora) {
+        if (raw.data_prescricao) {
+          const d = new Date(raw.data_prescricao);
+          if (!isNaN(d.getTime())) dataISO = d.toISOString();
+        } else if (raw.aplicacao_data_hora) {
           const d = new Date(raw.aplicacao_data_hora);
-            if (!isNaN(d.getTime())) dataISO = d.toISOString();
+          if (!isNaN(d.getTime())) dataISO = d.toISOString();
         } else if (raw.ano && raw.mes) {
-          const d = new Date(`${raw.ano}-${raw.mes}-01T00:00:00Z`);
+          const d = new Date(`${raw.ano}-${raw.mes}-01T12:00:00Z`);
           if (!isNaN(d.getTime())) dataISO = d.toISOString();
         }
-        const horario = raw.aplicacao_data_hora
-          ? new Date(raw.aplicacao_data_hora).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+
+        const horario = (raw.aplicacao_data_hora || raw.data_prescricao)
+          ? new Date(raw.aplicacao_data_hora || raw.data_prescricao!).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
           : null;
         const nomeMedicamento = raw.nome_medicamento || '';
         const posologia = raw.posologia || '';
         const observacoes = [nomeMedicamento, posologia].filter(Boolean).join(' — ');
-        
+
         // Derivar cuidador/responsável
         const cuidador = raw.cuidador_nome
           || raw.enfermeiro_nome
@@ -120,10 +124,10 @@ export function usePrescricoes(params: UsePrescricoesParams): UsePrescricoesResu
       const afterStart = startBoundary ? dateVal >= startBoundary : true;
       const beforeEnd = endBoundary ? dateVal <= endBoundary : true;
       const matches = term
-    ? [d.medico || '', d.observacoes || '', d.aplicador || '', d.vinculado_por || '', d.cuidador || '']
-            .join(' ') // juntar campos
-            .toLowerCase()
-            .includes(term)
+        ? [d.medico || '', d.observacoes || '', d.aplicador || '', d.vinculado_por || '', d.cuidador || '']
+          .join(' ') // juntar campos
+          .toLowerCase()
+          .includes(term)
         : true;
       return matches && afterStart && beforeEnd;
     });

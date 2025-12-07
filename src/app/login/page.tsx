@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import Link from 'next/link';
 // removed unused Card imports
 import Image from 'next/image';
 import { FaUser, FaLock } from 'react-icons/fa';
@@ -34,7 +35,7 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    
+
     try {
       const response = await fetch(`${API_BASE}/auth`, {
         method: 'POST',
@@ -52,7 +53,7 @@ export default function LoginPage() {
           const msg = errBody?.message;
           if (Array.isArray(msg)) message = msg.join(', ');
           else if (typeof msg === 'string') message = msg;
-        } catch {}
+        } catch { }
 
         if (response.status === 401) {
           message = 'Credenciais inválidas.';
@@ -72,9 +73,9 @@ export default function LoginPage() {
       toast.success('Logado com sucesso!');
 
       // Redireciona conforme a função do usuário
-        if (data.funcao === 'Administrador') {
-          router.push('/usuarios');
-      } else if (data.funcao === 'Cuidador' || data.funcao === 'Enfermeiro') {
+      if (data.funcao === 'Administrador') {
+        router.push('/usuarios');
+      } else if (data.funcao === 'Cuidador' || data.funcao === 'Enfermeiro' || data.funcao === 'Tecnico de Enfermagem' || data.funcao === 'Farmaceutico') {
         router.push("/morador");
       } else {
         toast.error('Função de usuário não reconhecida.');
@@ -90,12 +91,10 @@ export default function LoginPage() {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-white p-6">
-  <Image src="/logo-ssvp.png" alt="Logo" width={128} height={128} className="w-32 mb-4" priority />
-
+      <Image src="/logo-ssvp.png" alt="Logo" width={128} height={128} className="w-32 mb-4" priority />
       <h1 className="text-xl font-bold text-blue-900 mb-6 text-center">
         CASA DONA ZULMIRA
       </h1>
-
       <form onSubmit={handleSubmit} className="w-full max-w-sm">
         {/* Campo usuário */}
         <div className="relative w-full mb-4">
@@ -126,18 +125,21 @@ export default function LoginPage() {
         </div>
 
         {/* Botão entrar */}
-        <Button 
-          type="submit" 
+        <Button
+          type="submit"
           className="w-full bg-red-600 hover:bg-red-700 text-white text-lg rounded-full py-6 shadow-md"
           disabled={loading}
         >
           {loading ? 'ENTRANDO...' : 'ENTRAR'}
         </Button>
       </form>
+      <div className="text-center mt-4">
+        <Link href="/forgot-password" className="text-sm text-blue-600 hover:underline">
 
-      <a href="#" className="mt-4 text-sm text-blue-600 hover:underline">
-        Esqueceu sua senha?
-      </a>
+          Esqueci minha senha
+
+        </Link>
+      </div>
     </div>
   );
 }

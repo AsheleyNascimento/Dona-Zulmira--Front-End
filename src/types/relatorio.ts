@@ -85,6 +85,7 @@ export interface PrescricaoAnaliticoItem {
   nome_cuidador?: string | null;
   nome_enfermeiro?: string | null;
   usuario_nome?: string | null;
+  data_prescricao?: string | null; // Data real de criação (ISO)
 }
 
 // Payload para criação completa (prescricao + itens)

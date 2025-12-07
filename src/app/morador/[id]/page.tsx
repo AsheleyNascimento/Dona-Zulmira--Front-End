@@ -53,7 +53,7 @@ export default function PerfilMoradorPage() {
   // Adaptar para shape local
   const evolucoes: EvolucaoItem[] = evolucoesDados.map(ev => {
     const dt = new Date(ev.data_hora);
-    const hora = `${String(dt.getHours()).padStart(2,'0')}:${String(dt.getMinutes()).padStart(2,'0')}`;
+    const hora = `${String(dt.getHours()).padStart(2, '0')}:${String(dt.getMinutes()).padStart(2, '0')}`;
     const usuarioExtra = ev as unknown as { usuario?: { nome_usuario?: string; nome_completo?: string } };
     const profissional = ev.usuario?.nome_completo || usuarioExtra.usuario?.nome_usuario || null;
     return { id: ev.id_evolucao_individual, data: ev.data_hora, hora, descricao: ev.observacoes, profissional };
@@ -99,7 +99,7 @@ export default function PerfilMoradorPage() {
   useEffect(() => {
     const funcao = typeof window !== 'undefined' ? localStorage.getItem('funcao') : null;
     const accessToken = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
-    if (!accessToken || (funcao !== 'Cuidador' && funcao !== 'Enfermeiro')) {
+    if (!accessToken || (funcao !== 'Cuidador' && funcao !== 'Enfermeiro' && funcao !== 'Tecnico de Enfermagem' && funcao !== 'Farmaceutico')) {
       setAcessoNegado(true);
       setTimeout(() => router.push('/login'), 2000);
       setVerificado(true);
@@ -121,7 +121,7 @@ export default function PerfilMoradorPage() {
           ? { id_morador: mRaw.id_morador, nome_completo: mRaw.nome_completo, cpf: mRaw.cpf, rg: mRaw.rg, situacao: mRaw.situacao }
           : null;
         setMorador(m);
-        try { if (m?.nome_completo) sessionStorage.setItem(`moradorNome:${id}`, m.nome_completo); } catch {}
+        try { if (m?.nome_completo) sessionStorage.setItem(`moradorNome:${id}`, m.nome_completo); } catch { }
         setVerificado(true);
       })
       .catch(() => {
@@ -130,19 +130,6 @@ export default function PerfilMoradorPage() {
       })
       .finally(() => setMoradorCarregando(false));
   }, [id, router]);
-
-  // Se a aba atual for 'prescricoes' e o usuário não tiver permissão, volta para 'evolucoes'
-  // Define aba padrão e visibilidade com base na role do usuário.
-  // - Enfermeiro: apenas 'prescricoes' visível e selecionada.
-  // - Outros (ex.: Cuidador): apenas 'evolucoes' visível e selecionada.
-  useEffect(() => {
-    if (!userRole) return; // aguarda role definida
-    if (userRole === 'Enfermeiro') {
-      if (tab !== 'prescricoes') setTab('prescricoes');
-    } else {
-      if (tab !== 'evolucoes') setTab('evolucoes');
-    }
-  }, [userRole, tab]); // Adicionado 'tab' nas dependências
 
   // Reaplica refresh de prescrições quando mudarmos página/limit (hook já depende). Filtros são client-side.
   useEffect(() => { void refreshPrescricoes(); }, [pPage, pLimit, refreshPrescricoes]);
@@ -201,7 +188,7 @@ export default function PerfilMoradorPage() {
             aria-label="Voltar"
             title="Voltar"
             onClick={() => {
-              try { if (typeof window !== 'undefined' && window.history.length > 1) { window.history.back(); return; } } catch {}
+              try { if (typeof window !== 'undefined' && window.history.length > 1) { window.history.back(); return; } } catch { }
               router.push('/moradores');
             }}
           >
@@ -214,12 +201,12 @@ export default function PerfilMoradorPage() {
             idMorador={id}
             editando={null}
             onClose={() => { /* noop */ }}
-            onSaved={async () => { await refreshEvolucoes(); setToastMsg('Evolução registrada com sucesso!'); setTimeout(()=>setToastMsg(''),3000); }}
+            onSaved={async () => { await refreshEvolucoes(); setToastMsg('Evolução registrada com sucesso!'); setTimeout(() => setToastMsg(''), 3000); }}
           />
         ) : (
           <PrescricaoFormModal
             idMorador={id}
-            onSaved={async () => { await refreshPrescricoes(); setToastMsg('Prescrição criada com sucesso!'); setTimeout(()=>setToastMsg(''),3000); }}
+            onSaved={async () => { await refreshPrescricoes(); setToastMsg('Prescrição criada com sucesso!'); setTimeout(() => setToastMsg(''), 3000); }}
           />
         )}
       />
@@ -231,13 +218,8 @@ export default function PerfilMoradorPage() {
         <Card className="bg-white rounded-2xl p-0 shadow-sm overflow-hidden">
           <div className="border-b border-[#e5eaf1] bg-white px-4 sm:px-6">
             <div className="flex gap-2">
-              {/* Mostrar apenas a aba relevante para a role atual */}
-              {userRole !== 'Enfermeiro' && (
-                <TabButton active={tab === 'evolucoes'} onClick={() => setTab('evolucoes')}>Evoluções</TabButton>
-              )}
-              {userRole === 'Enfermeiro' && (
-                <TabButton active={tab === 'prescricoes'} onClick={() => setTab('prescricoes')}>Prescrições</TabButton>
-              )}
+              <TabButton active={tab === 'evolucoes'} onClick={() => setTab('evolucoes')}>Evoluções</TabButton>
+              <TabButton active={tab === 'prescricoes'} onClick={() => setTab('prescricoes')}>Prescrições</TabButton>
             </div>
           </div>
           <div className="p-4 sm:p-6">
@@ -295,7 +277,7 @@ export default function PerfilMoradorPage() {
                 )}
                 {loadingEvolucoes && (
                   <div className="space-y-2" aria-label="Carregando evoluções">
-                    {Array.from({length:3}).map((_,i)=>(<div key={i} className="h-10 rounded bg-[#e2ecf6] animate-pulse" />))}
+                    {Array.from({ length: 3 }).map((_, i) => (<div key={i} className="h-10 rounded bg-[#e2ecf6] animate-pulse" />))}
                   </div>
                 )}
                 {!loadingEvolucoes && evolucoes.length === 0 && !erroEvolucoes && (
@@ -335,9 +317,11 @@ export default function PerfilMoradorPage() {
                               >
                                 <Eye className="h-4 w-4" />
                               </Button>
-                              <Button variant="outline" size="icon" title="Editar" onClick={() => { setEditEvolucao(ev); setOpenEdit(true); }}>
-                                <Pencil className="h-4 w-4" />
-                              </Button>
+                              {userRole !== 'Cuidador' && (
+                                <Button variant="outline" size="icon" title="Editar" onClick={() => { setEditEvolucao(ev); setOpenEdit(true); }}>
+                                  <Pencil className="h-4 w-4" />
+                                </Button>
+                              )}
                             </div>
                           </TableCell>
                         </TableRow>
@@ -416,7 +400,7 @@ export default function PerfilMoradorPage() {
                 )}
                 {loadingPrescricoes && (
                   <div className="space-y-2" aria-label="Carregando prescrições">
-                    {Array.from({length:3}).map((_,i)=>(<div key={i} className="h-10 rounded bg-[#e2ecf6] animate-pulse" />))}
+                    {Array.from({ length: 3 }).map((_, i) => (<div key={i} className="h-10 rounded bg-[#e2ecf6] animate-pulse" />))}
                   </div>
                 )}
                 {!loadingPrescricoes && !erroPrescricoes && prescricoesFiltradas.length === 0 && (
@@ -457,20 +441,22 @@ export default function PerfilMoradorPage() {
                                 >
                                   <Eye className="h-4 w-4" />
                                 </Button>
-                                <Button
-                                  variant="outline"
-                                  size="icon"
-                                  title="Editar"
-                                  onClick={async () => {
-                                    if (!p.id_medicamento_prescricao) { alert('Não é possível editar este item.'); return; }
-                                    setEditPrescItemId(p.id_medicamento_prescricao);
-                                    setEditPrescMedicamentoId(p.id_medicamento ?? '');
-                                    setEditPrescPosologia(p.posologia || '');
-                                    setOpenPrescEdit(true);
-                                  }}
-                                >
-                                  <Pencil className="h-4 w-4" />
-                                </Button>
+                                {userRole !== 'Cuidador' && (
+                                  <Button
+                                    variant="outline"
+                                    size="icon"
+                                    title="Editar"
+                                    onClick={async () => {
+                                      if (!p.id_medicamento_prescricao) { alert('Não é possível editar este item.'); return; }
+                                      setEditPrescItemId(p.id_medicamento_prescricao);
+                                      setEditPrescMedicamentoId(p.id_medicamento ?? '');
+                                      setEditPrescPosologia(p.posologia || '');
+                                      setOpenPrescEdit(true);
+                                    }}
+                                  >
+                                    <Pencil className="h-4 w-4" />
+                                  </Button>
+                                )}
                               </div>
                             </TableCell>
                           </TableRow>
@@ -555,7 +541,7 @@ export default function PerfilMoradorPage() {
             {/* Corpo */}
             <div className="pt-2">
               <p className="font-semibold text-gray-900 text-sm mb-2">Intercorrências:</p>
-              <div className="whitespace-pre-wrap text-gray-800 text-sm leading-relaxed">
+              <div className="whitespace-pre-wrap break-all text-gray-800 text-sm leading-relaxed">
                 {viewTexto || '-'}
               </div>
             </div>
@@ -661,7 +647,7 @@ export default function PerfilMoradorPage() {
         itemId={editPrescItemId}
         medicamentoIdInicial={editPrescMedicamentoId}
         posologiaInicial={editPrescPosologia}
-        onSaved={async () => { await refreshPrescricoes(); setToastMsg('Prescrição atualizada com sucesso!'); setTimeout(()=>setToastMsg(''),3000); }}
+        onSaved={async () => { await refreshPrescricoes(); setToastMsg('Prescrição atualizada com sucesso!'); setTimeout(() => setToastMsg(''), 3000); }}
       />
 
       {/* Modal de edição de evolução (novo componente) */}
@@ -674,7 +660,7 @@ export default function PerfilMoradorPage() {
         } : null}
         open={openEdit}
         onOpenChange={(v) => { setOpenEdit(v); if (!v) { setEditEvolucao(null); } }}
-        onSaved={async () => { await refreshEvolucoes(); setToastMsg('Evolução atualizada com sucesso!'); setTimeout(()=>setToastMsg(''),3000); }}
+        onSaved={async () => { await refreshEvolucoes(); setToastMsg('Evolução atualizada com sucesso!'); setTimeout(() => setToastMsg(''), 3000); }}
       />
       {/* Botão flutuante substituir "N" por "+" que abre o modal de criação */}
       <button
@@ -700,9 +686,8 @@ export default function PerfilMoradorPage() {
 function TabButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
     <button
-      className={`px-4 py-3 text-sm font-medium border-b-2 -mb-px ${
-        active ? 'text-[#003d99] border-[#003d99]' : 'text-[#4a5b78] border-transparent hover:text-[#003d99]'
-      }`}
+      className={`px-4 py-3 text-sm font-medium border-b-2 -mb-px ${active ? 'text-[#003d99] border-[#003d99]' : 'text-[#4a5b78] border-transparent hover:text-[#003d99]'
+        }`}
       onClick={onClick}
     >
       {children}

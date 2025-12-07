@@ -37,6 +37,7 @@ interface UsuarioApiResponse {
 const ITEMS_PER_PAGE = 10;
 
 const navItems = [
+    { href: "/usuarios", label: "Usuarios", icon: <Users className="h-5 w-5" /> },
     { href: "/moradores", label: "Moradores", icon: <Users className="h-5 w-5" /> },
     { href: "/medicos", label: "Médicos", icon: <Stethoscope className="h-5 w-5" /> },
     { href: "/medicamentos", label: "Medicamentos", icon: <Pill className="h-5 w-5" /> },

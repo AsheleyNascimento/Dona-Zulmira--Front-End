@@ -32,7 +32,8 @@ export default function MoradorListaPage() {
   useEffect(() => {
     const funcao = typeof window !== 'undefined' ? localStorage.getItem('funcao') : null;
     const accessToken = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
-    if (!accessToken || funcao !== 'Cuidador' && funcao !== 'Enfermeiro') {
+
+    if (!accessToken || funcao !== 'Cuidador' && funcao !== 'Enfermeiro' && funcao !== 'Tecnico de Enfermagem' && funcao !== 'Farmaceutico') {
       setAcessoNegado(true);
       setTimeout(() => {
         router.push('/login');
@@ -41,8 +42,8 @@ export default function MoradorListaPage() {
       return;
     }
 
-  // <-- LISTAGEM: fetch para o backend GET /morador (popula estado `moradores`)
-  fetch(`${API_BASE}/morador`, {
+    // <-- LISTAGEM: fetch para o backend GET /morador (popula estado `moradores`)
+    fetch(`${API_BASE}/morador`, {
       headers: {
         Authorization: `Bearer ${accessToken}`,
         'Content-Type': 'application/json',
@@ -65,9 +66,9 @@ export default function MoradorListaPage() {
           nome_completo: m.nome_completo,
           situacao: m.situacao ?? null,
         }));
-  // debug: inspecionar dados retornados do backend (temporário)
-  try { console.log('moradores fetched:', mapped); } catch {}
-  setMoradores(mapped);
+        // debug: inspecionar dados retornados do backend (temporário)
+        try { console.log('moradores fetched:', mapped); } catch { }
+        setMoradores(mapped);
         setVerificado(true);
       })
       .catch(() => {
@@ -125,7 +126,7 @@ export default function MoradorListaPage() {
         </div>
       </aside>
 
-  <main className="flex-1 flex flex-col p-6 sm:p-8 relative">
+      <main className="flex-1 flex flex-col p-6 sm:p-8 relative">
 
         <div className="w-full bg-white/60 backdrop-blur rounded-3xl shadow-sm p-3 mb-6">
           <div className="flex items-center gap-3 px-2">
@@ -236,7 +237,7 @@ function LateralNav() {
   return (
     <nav className="mt-8 flex flex-col gap-2 text-[0.95rem] text-[#002c6c]">
       {items.map((it) => {
-  const active = pathname === it.href;
+        const active = pathname === it.href;
         return (
           <Button
             key={it.href}

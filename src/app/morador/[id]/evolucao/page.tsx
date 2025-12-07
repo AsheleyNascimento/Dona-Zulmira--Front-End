@@ -33,11 +33,12 @@ export default function RegistrarEvolucaoMoradorPage() {
     const funcao = typeof window !== 'undefined' ? localStorage.getItem('funcao') : null;
     const accessToken = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
 
-    if (!accessToken || funcao !== 'Cuidador') {
+    // Allow access for Cuidador, Enfermeiro, and Tecnico de Enfermagem
+    const allowedRoles = ['Cuidador', 'Enfermeiro', 'Tecnico de Enfermagem'];
+    if (!accessToken || !funcao || !allowedRoles.includes(funcao)) {
       setAcessoNegado(true);
       setTimeout(() => router.push('/login'), 2000);
     }
-    // REMOVIDO: atribuição de userRole não utilizada
     setVerificado(true);
   }, [router]);
 
@@ -52,7 +53,7 @@ export default function RegistrarEvolucaoMoradorPage() {
           if (d.descricao) setDescricao(d.descricao);
         }
       }
-    } catch {}
+    } catch { }
   }, [id]);
 
   useEffect(() => {
@@ -66,7 +67,7 @@ export default function RegistrarEvolucaoMoradorPage() {
       if (cache) {
         setMoradorNome(cache);
       }
-    } catch {}
+    } catch { }
 
     setMoradorCarregando(true);
     fetch(`${API_BASE}/morador/${id}`, {
@@ -77,7 +78,7 @@ export default function RegistrarEvolucaoMoradorPage() {
         const mRaw = (data && (data.data ?? data.morador ?? data)) || null;
         const nome = mRaw?.nome_completo ?? '';
         setMoradorNome(nome);
-        try { if (nome) sessionStorage.setItem(`moradorNome:${id}`, nome); } catch {}
+        try { if (nome) sessionStorage.setItem(`moradorNome:${id}`, nome); } catch { }
       })
       .catch(() => {
         // mantém valor atual ou vazio

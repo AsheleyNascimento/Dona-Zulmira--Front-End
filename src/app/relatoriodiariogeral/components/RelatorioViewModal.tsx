@@ -25,13 +25,13 @@ export function RelatorioViewModal({ relatorio, open, onOpenChange }: RelatorioV
       // Logging removed
       getRelatorioDetalhe(relatorio.id_relatorio_diario_geral)
         .then((d) => {
-            setDetalhe(d);
+          setDetalhe(d);
         })
         .catch((e) => {
           if (process.env.NODE_ENV !== 'production') {
             console.error('[RelatorioViewModal] Erro ao carregar detalhe', e);
           }
-            setErro('Não foi possível carregar o relatório.');
+          setErro('Não foi possível carregar o relatório.');
         })
         .finally(() => setLoading(false));
     } else if (!open) {
@@ -59,7 +59,7 @@ export function RelatorioViewModal({ relatorio, open, onOpenChange }: RelatorioV
               <div className="rounded-md border border-[#e1e8f0] bg-[#f5f8fb] p-3">
                 <p className="font-medium mb-1">Carregando informações detalhadas...</p>
                 <p><strong>ID:</strong> {relatorio.id_relatorio_diario_geral}</p>
-                <p><strong>Data:</strong> {(() => { const d=new Date(relatorio.data_hora); return isNaN(d.getTime())?'-': d.toLocaleDateString('pt-BR'); })()}</p>
+                <p><strong>Data:</strong> {(() => { const d = new Date(relatorio.data_hora); return isNaN(d.getTime()) ? '-' : d.toLocaleDateString('pt-BR'); })()}</p>
                 <p className="line-clamp-3"><strong>Observações (base):</strong> {relatorio.observacoes || '-'}</p>
               </div>
             </div>
@@ -78,7 +78,7 @@ export function RelatorioViewModal({ relatorio, open, onOpenChange }: RelatorioV
                 </div>
                 <div>
                   <h3 className="text-sm font-semibold text-[#002c6c] mb-1">Observações Gerais</h3>
-                  <div className="whitespace-pre-wrap text-sm leading-relaxed text-[#2d3e55] bg-[#f5f8fb] border border-[#e1e8f0] rounded-md p-3">
+                  <div className="whitespace-pre-wrap break-all text-sm leading-relaxed text-[#2d3e55] bg-[#f5f8fb] border border-[#e1e8f0] rounded-md p-3">
                     {detalhe.observacoes || '-'}
                   </div>
                 </div>
@@ -92,8 +92,8 @@ export function RelatorioViewModal({ relatorio, open, onOpenChange }: RelatorioV
                   <div className="border rounded-md p-3 bg-[#f5f8fb]">
                     <p className="text-[11px] text-[#6b87b5] mb-1">(Formato legado)</p>
                     <p className="text-[13px] font-medium mb-1">Evolução #{detalhe.evolucaoindividual.id_evolucao_individual}</p>
-                    <p className="text-[11px] text-[#4a5b78] mb-2">{(() => { const d=new Date(detalhe.evolucaoindividual!.data_hora); return isNaN(d.getTime())?'-': d.toLocaleDateString('pt-BR'); })()}</p>
-                    <p className="text-sm whitespace-pre-wrap">{detalhe.evolucaoindividual.observacoes}</p>
+                    <p className="text-[11px] text-[#4a5b78] mb-2">{(() => { const d = new Date(detalhe.evolucaoindividual!.data_hora); return isNaN(d.getTime()) ? '-' : d.toLocaleDateString('pt-BR'); })()}</p>
+                    <p className="text-sm whitespace-pre-wrap break-all">{detalhe.evolucaoindividual.observacoes}</p>
                   </div>
                 )}
                 {detalhe.evolucoes && detalhe.evolucoes.length > 0 && (
@@ -110,8 +110,8 @@ export function RelatorioViewModal({ relatorio, open, onOpenChange }: RelatorioV
                         {detalhe.evolucoes.map(w => (
                           <tr key={w.evolucao.id_evolucao_individual} className="odd:bg-white even:bg-[#fafcfe]">
                             <td className="px-3 py-2 font-medium text-[#002c6c]">#{w.evolucao.id_evolucao_individual}</td>
-                            <td className="px-3 py-2 text-[#2d3e55]">{(() => { const d=new Date(w.evolucao.data_hora); return isNaN(d.getTime())?'-': d.toLocaleDateString('pt-BR'); })()}</td>
-                            <td className="px-3 py-2 text-[#2d3e55] whitespace-pre-wrap">{w.evolucao.observacoes}</td>
+                            <td className="px-3 py-2 text-[#2d3e55]">{(() => { const d = new Date(w.evolucao.data_hora); return isNaN(d.getTime()) ? '-' : d.toLocaleDateString('pt-BR'); })()}</td>
+                            <td className="px-3 py-2 text-[#2d3e55] whitespace-pre-wrap break-all">{w.evolucao.observacoes}</td>
                           </tr>
                         ))}
                       </tbody>

@@ -26,7 +26,6 @@ export function MedicamentoForm({ onSubmit, onClose, initialData }: MedicamentoF
     nome_medicamento: initialData?.nome_medicamento ?? "",
   });
 
-  const isEditing = !!initialData;
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target;
@@ -45,13 +44,10 @@ export function MedicamentoForm({ onSubmit, onClose, initialData }: MedicamentoF
       id_medicamento: initialData?.id_medicamento,
     } as MedicamentoFormData;
 
-    // Apenas encaminha os dados para o pai. A chamada à API e as notificações
-    // devem ser realizadas pelo componente pai (`page.tsx`) para evitar duplicação.
     if (onSubmit) {
       try {
         await Promise.resolve(onSubmit(payload));
-      } catch (err) {
-        // Deixa o componente pai tratar erros e notificações relacionadas à rede.
+      } catch {
       }
     }
   };

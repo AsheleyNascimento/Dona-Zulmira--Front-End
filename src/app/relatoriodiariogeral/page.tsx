@@ -25,6 +25,7 @@ export default function RelatorioDiarioGeralPage() {
   const [editando, setEditando] = useState<RelatorioDiarioGeral | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterBy, setFilterBy] = useState<'observacoes' | 'profissional'>('observacoes');
+  const [userRole, setUserRole] = useState<string | null>(null);
 
   // Visualização
   const [openView, setOpenView] = useState(false);
@@ -37,14 +38,18 @@ export default function RelatorioDiarioGeralPage() {
   useEffect(() => {
     const funcao = typeof window !== 'undefined' ? localStorage.getItem('funcao') : null;
     const accessToken = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
-    if (!accessToken || (funcao !== 'Cuidador' && funcao !== 'Enfermeiro')) {
+
+    if (!accessToken || funcao !== 'Cuidador' && funcao !== 'Enfermeiro' && funcao !== 'Tecnico de Enfermagem' && funcao !== 'Farmaceutico') {
       setAcessoNegado(true);
-      setTimeout(() => { router.push('/login'); }, 2000);
+      setTimeout(() => {
+        router.push('/login');
+      }, 2000);
       setVerificado(true);
       return;
     }
     // Evoluções agora carregadas via hook (useEvolucoes). Apenas marcamos verificado.
     setVerificado(true);
+    setUserRole(funcao);
   }, [router]);
 
   const filtrados = useMemo(() => {
@@ -99,8 +104,8 @@ export default function RelatorioDiarioGeralPage() {
       <SidebarPadrao />
       <main className="relative flex-1 flex flex-col py-6 px-8">
         <FilterToolbar
-          onSearchChange={(v)=>{ setSearchTerm(v); setCurrentPage(1); }}
-          onFilterChange={(v)=>{ setFilterBy(v as 'observacoes' | 'profissional'); setCurrentPage(1); }}
+          onSearchChange={(v) => { setSearchTerm(v); setCurrentPage(1); }}
+          onFilterChange={(v) => { setFilterBy(v as 'observacoes' | 'profissional'); setCurrentPage(1); }}
           filterValue={filterBy}
           showAddButton={false}
           filterOptions={[
@@ -165,7 +170,7 @@ export default function RelatorioDiarioGeralPage() {
                     <TableCell className="text-gray-700">{r.usuario?.nome_completo ?? '-'}</TableCell>
                     <TableCell className="text-gray-700 max-w-[480px] w-[42%] align-top">
                       <span className="block truncate" title={r.observacoes || undefined}>
-                        {r.observacoes ? (r.observacoes.length > 120 ? r.observacoes.slice(0,120) + '…' : r.observacoes) : '-'}
+                        {r.observacoes ? (r.observacoes.length > 120 ? r.observacoes.slice(0, 120) + '…' : r.observacoes) : '-'}
                       </span>
                     </TableCell>
                     <TableCell className="text-gray-700 w-[12%] align-top text-nowrap">
@@ -173,7 +178,9 @@ export default function RelatorioDiarioGeralPage() {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
-                        <Button aria-label="Editar relatório" variant="outline" size="sm" className="h-7 px-2 text-xs" onClick={(e) => { e.stopPropagation(); iniciarEdicao(r); }}>Editar</Button>
+                        {userRole !== 'Cuidador' && (
+                          <Button aria-label="Editar relatório" variant="outline" size="sm" className="h-7 px-2 text-xs" onClick={(e) => { e.stopPropagation(); iniciarEdicao(r); }}>Editar</Button>
+                        )}
                         <Button aria-label="Ver relatório" variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={(e) => { e.stopPropagation(); abrirVisualizacao(r); }}>Ver</Button>
                       </div>
                     </TableCell>
@@ -209,24 +216,24 @@ export default function RelatorioDiarioGeralPage() {
           <div className="flex justify-between items-center mt-6 text-sm text-gray-600">
             <span>Exibindo {ordenados.length === 0 ? 0 : startIdx + 1} a {Math.min(endIdx, ordenados.length)} de {ordenados.length} relatórios</span>
             <div className="flex gap-2">
-              <Button variant="ghost" size="sm" className="w-8 h-8 rounded-full hover:bg-[#e9f1f9]/50 cursor-pointer" onClick={() => setCurrentPage(p => Math.max(p-1,1))} disabled={currentPage===1}>‹</Button>
-              {Array.from({ length: totalPages }, (_,i)=> i+1).map(p => (
-                <Button key={p} size="sm" className={`w-8 h-8 rounded-full ${currentPage===p ? 'bg-[#002c6c] text-white' : 'border border-[#002c6c] text-[#002c6c] hover:bg-[#e9f1f9]'}`} onClick={()=>setCurrentPage(p)}>{p}</Button>
+              <Button variant="ghost" size="sm" className="w-8 h-8 rounded-full hover:bg-[#e9f1f9]/50 cursor-pointer" onClick={() => setCurrentPage(p => Math.max(p - 1, 1))} disabled={currentPage === 1}>‹</Button>
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
+                <Button key={p} size="sm" className={`w-8 h-8 rounded-full ${currentPage === p ? 'bg-[#002c6c] text-white' : 'border border-[#002c6c] text-[#002c6c] hover:bg-[#e9f1f9]'}`} onClick={() => setCurrentPage(p)}>{p}</Button>
               ))}
-              <Button variant="ghost" size="sm" className="w-8 h-8 rounded-full hover:bg-[#e9f1f9]/50 cursor-pointer" onClick={() => setCurrentPage(p => Math.min(p+1,totalPages))} disabled={currentPage===totalPages}>›</Button>
+              <Button variant="ghost" size="sm" className="w-8 h-8 rounded-full hover:bg-[#e9f1f9]/50 cursor-pointer" onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))} disabled={currentPage === totalPages}>›</Button>
             </div>
           </div>
         </Card>
-        <RelatorioViewModal relatorio={viewRelatorio} open={openView} onOpenChange={(v)=>{ if(!v){ setOpenView(false); setViewRelatorio(null);} else { setOpenView(true);} }} />
+        <RelatorioViewModal relatorio={viewRelatorio} open={openView} onOpenChange={(v) => { if (!v) { setOpenView(false); setViewRelatorio(null); } else { setOpenView(true); } }} />
       </main>
     </div>
   );
 }
-function SidebarPadrao(){
+function SidebarPadrao() {
   const router = useRouter();
   const pathname = usePathname();
   const items = [
-    { href: '/morador', label: 'Lista de Moradores', icon: <Users className='h-5 w-5'/> },
+    { href: '/morador', label: 'Lista de Moradores', icon: <Users className='h-5 w-5' /> },
   ];
   return (
     <aside className="w-64 flex-shrink-0 flex flex-col bg-white p-6 border-r border-[#e9f1f9]">
@@ -240,7 +247,7 @@ function SidebarPadrao(){
             key={item.href}
             variant="ghost"
             className={`justify-start gap-3 px-3 cursor-pointer hover:bg-[#e9f1f9]/50 ${pathname === item.href ? 'bg-[#e9f1f9]' : ''}`}
-            onClick={()=>router.push(item.href)}
+            onClick={() => router.push(item.href)}
           >
             {item.icon}
             {item.label}

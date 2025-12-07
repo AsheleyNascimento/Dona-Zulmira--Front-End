@@ -70,9 +70,8 @@ function SidebarNav() {
         <Button
           key={item.label}
           variant="ghost"
-          className={`justify-start gap-3 px-3 cursor-pointer hover:bg-[#e9f1f9]/50 ${
-            pathname === item.href ? "bg-[#e9f1f9]" : ""
-          }`}
+          className={`justify-start gap-3 px-3 cursor-pointer hover:bg-[#e9f1f9]/50 ${pathname === item.href ? "bg-[#e9f1f9]" : ""
+            }`}
           onClick={() => router.push(item.href)}
         >
           {item.icon}
@@ -98,7 +97,6 @@ export default function ListaMoradoresPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterBy, setFilterBy] = useState("nome");
   const [currentPage, setCurrentPage] = useState(1);
   const [acessoNegado, setAcessoNegado] = useState(false);
   const [verificado, setVerificado] = useState(false);
@@ -272,9 +270,8 @@ export default function ListaMoradoresPage() {
         {/* Barra de busca + filtro + botão */}
         <FilterToolbar
           onSearchChange={setSearchTerm}
-          onFilterChange={setFilterBy}
           onAddClick={() => { setMoradorEditando(null); setIsDialogOpen(true); }}
-          filterValue={filterBy}
+          showFilterSelect={false}
         />
         {/* Tabela */}
         <Card className="rounded-2xl border border-[#cfd8e3] shadow-md bg-white p-4">
@@ -339,11 +336,10 @@ export default function ListaMoradoresPage() {
                 <Button
                   key={page}
                   size="sm"
-                  className={`w-8 h-8 rounded-full ${
-                    currentPage === page
-                      ? "bg-[#002c6c] text-white"
-                      : "border border-[#002c6c] text-[#002c6c] hover:bg-[#e9f1f9]"
-                  }`}
+                  className={`w-8 h-8 rounded-full ${currentPage === page
+                    ? "bg-[#002c6c] text-white"
+                    : "border border-[#002c6c] text-[#002c6c] hover:bg-[#e9f1f9]"
+                    }`}
                   onClick={() => setCurrentPage(page)}
                 >
                   {page}
@@ -388,11 +384,11 @@ export default function ListaMoradoresPage() {
             initialData={
               moradorEditando
                 ? {
-                    nome: moradorEditando.nome_completo,
-                    cpf: moradorEditando.cpf,
-                    rg: moradorEditando.rg,
-                    ativo: moradorEditando.situacao,
-                  }
+                  nome: moradorEditando.nome_completo,
+                  cpf: moradorEditando.cpf,
+                  rg: moradorEditando.rg,
+                  ativo: moradorEditando.situacao,
+                }
                 : undefined
             }
           />
